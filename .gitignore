@@ -1,5 +1,3 @@
 # Git ignore Folders
-Debug
-Generated Files
-x64
-.vs/Arabesque
+CMakeFiles
+Build
