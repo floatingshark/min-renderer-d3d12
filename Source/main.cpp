@@ -1,25 +1,23 @@
 #include <iostream>
-#include <vector>
-#include <string>
-#include <windows.h>
-#include "GLFW/glfw3.h"
+#include <cassert>
+#include "window.hpp"
+#include "directx.hpp"
 
 int main()
 {
 	std::cout << "Begin program" << std::endl;
 
-	const uint32_t WIDTH = 800;
-	const uint32_t HEIGHT = 600;
+	// Create window
+	std::shared_ptr<arabesque::Window> window = std::make_shared<arabesque::Window>();
+	window->init_window();
+	HWND hwnd = window->get_hwnd();
+	assert(hwnd && "Failed to get HWND");
 
-	glfwInit();
-	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-	GLFWwindow *window = glfwCreateWindow(WIDTH, HEIGHT, "Arabesque", nullptr, nullptr);
+	// Create DirectX12 context
+	std::shared_ptr<arabesque::DirectX> directx = std::make_shared<arabesque::DirectX>();
+	directx->init_directx();
 
-	while (!glfwWindowShouldClose(window))
-	{
-		glfwPollEvents();
-	}
+	window->update_window();
 
 	std::cout << "End program" << std::endl;
 
