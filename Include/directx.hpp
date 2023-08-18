@@ -1,18 +1,19 @@
+#pragma once
 // #define _XM_NO_INTRINSICS_
 #define _XM_NO_XMVECTOR_OVERLOADS_
 #define RTV_BUFFER_NUM (2)
-
 #include <iostream>
+#include <vector>
 #include <cassert>
+#include <wrl/client.h>
 #include <Windows.h>
-#include <wrl.h>
-
 #include <d3d12.h>
 #include <d3d12shader.h>
 #include <dxgi1_4.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include <d3d12sdklayers.h>
+#include "mesh.hpp"
 
 namespace arabesque
 {
@@ -20,8 +21,8 @@ namespace arabesque
 	{
 		typedef struct Vertex3D
 		{
-			DirectX::XMFLOAT4 Position;
-			DirectX::XMFLOAT4 Color;
+			float Position[3];
+			float Color[4];
 		} Vertex3D;
 
 		typedef struct ConstantBufferData
@@ -33,6 +34,13 @@ namespace arabesque
 
 	public:
 		DirectXA(HWND h) : hwnd(h) {}
+		~DirectXA()
+		{
+			render_targets[1].Reset();
+			render_targets[0].Reset();
+			delete swap_chain;
+			swap_chain = nullptr;
+		}
 
 	protected:
 		HWND hwnd;
@@ -49,24 +57,24 @@ namespace arabesque
 		Microsoft::WRL::ComPtr<ID3D12Device> device;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue> command_queue;
 		Microsoft::WRL::ComPtr<ID3D12Fence> queue_fence;
-		Microsoft::WRL::ComPtr<IDXGISwapChain3> swap_chain;
+		IDXGISwapChain3 *swap_chain;
+		D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle[RTV_BUFFER_NUM];
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtv_heap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> dsb_heap;
 		Microsoft::WRL::ComPtr<ID3D12Resource> depth_buffer;
 		D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle;
 		Microsoft::WRL::ComPtr<ID3D12Resource> render_targets[RTV_BUFFER_NUM];
-		D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle[RTV_BUFFER_NUM];
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> command_allocator;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> command_list;
-		Microsoft::WRL::ComPtr<ID3D12Resource> constant_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource> index_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature> root_signature;
 		Microsoft::WRL::ComPtr<ID3DBlob> root_signature_blob;
 		Microsoft::WRL::ComPtr<ID3DBlob> error_blob;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> pipeline_state;
 		Microsoft::WRL::ComPtr<ID3DBlob> vertex_shader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixel_shader;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState> pipeline_state;
+		Microsoft::WRL::ComPtr<ID3D12Resource> constant_buffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource> index_buffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;
 		D3D12_INDEX_BUFFER_VIEW index_view;
 		D3D12_VERTEX_BUFFER_VIEW vertex_view;
 
@@ -88,9 +96,8 @@ namespace arabesque
 			init_vertex_data();
 			init_constant_data();
 
-			Render();
+			render();
 		}
-
 		void init_viewport()
 		{
 			viewport.TopLeftX = 0.f;
@@ -173,12 +180,15 @@ namespace arabesque
 			swapchain_desc.SampleDesc.Count = 1;
 			swapchain_desc.Windowed = TRUE;
 
-			Microsoft::WRL::ComPtr<IDXGISwapChain> temp_swap_chain;
+			IDXGISwapChain *temp_swap_chain;
 			h_result = factory->CreateSwapChain(command_queue.Get(),
 												&swapchain_desc,
 												&temp_swap_chain);
 			assert(SUCCEEDED(h_result) && "Create Swap Chain");
-			temp_swap_chain.As(&swap_chain);
+			// temp_swap_chain.As(&swap_chain);
+			temp_swap_chain->QueryInterface(&swap_chain);
+			temp_swap_chain->Release();
+			temp_swap_chain = nullptr;
 		}
 		void init_descriptor_heap()
 		{
@@ -331,6 +341,7 @@ namespace arabesque
 		{
 			HRESULT h_result;
 			UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+			// Stop When Shader Compile Error
 			h_result = D3DCompileFromFile(L"./Source/Shader/Shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertex_shader, nullptr);
 			assert(SUCCEEDED(h_result) && "Compile Vertex Shader");
 			h_result = D3DCompileFromFile(L"./Source/Shader/Shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixel_shader, nullptr);
@@ -439,30 +450,31 @@ namespace arabesque
 
 			// Write Vertex Datum to Vertex Buffer
 			Vertex3D Vertices[] = {
-				{DirectX::XMFLOAT4(-1.f, 1.f, 0.f, 1.f), DirectX::XMFLOAT4(1.f, 0.f, 1.f, 1.f)},
-				{DirectX::XMFLOAT4(1.f, 1.f, 0.f, 1.f), DirectX::XMFLOAT4(0.f, 1.f, 0.f, 1.f)},
-				{DirectX::XMFLOAT4(1.f, -1.f, 0.f, 1.f), DirectX::XMFLOAT4(0.f, 0.f, 1.f, 1.f)},
-				{DirectX::XMFLOAT4(-1.f, -1.f, 0.f, 1.f), DirectX::XMFLOAT4(1.f, 1.f, 1.f, 1.f)},
+				{{-1.f, 1.f, 0.f}, {1.f, 0.f, 0.f, 1.f}},
+				{{1.f, 1.f, 0.f}, {0.f, 1.f, 0.f, 1.f}},
+				{{1.f, -1.f, 0.f}, {0.f, 0.f, 1.f, 1.f}},
+				{{-1.f, -1.f, 0.f}, {1.f, 1.f, 1.f, 1.f}},
 			};
+			// Mapping
 			h_result = vertex_buffer->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(h_result) && "Vertex Buffer Written");
+			assert(SUCCEEDED(h_result) && "Fialed Vertex Buffer Mapping");
 			CopyMemory(Mapped, Vertices, sizeof(Vertices));
 			vertex_buffer->Unmap(0, nullptr);
 			Mapped = nullptr;
 			vertex_view.BufferLocation = vertex_buffer->GetGPUVirtualAddress();
-			vertex_view.StrideInBytes = sizeof(Vertex3D);
-			vertex_view.SizeInBytes = sizeof(Vertices);
+			vertex_view.StrideInBytes = sizeof(Vertex3D); // Size of 1 Vertex
+			vertex_view.SizeInBytes = sizeof(Vertices);	  // Size of All Vertices
 
 			// Write Index Datum to Index Buffer
-			uint16_t Index[] = {0, 1, 3, 1, 2, 3};
+			int Index[] = {0, 1, 3, 1, 2, 3};
 			h_result = index_buffer->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(h_result) && "Index Buffer Written");
+			assert(SUCCEEDED(h_result) && "Failed Index Buffer Mapping");
 			CopyMemory(Mapped, Index, sizeof(Index));
 			index_buffer->Unmap(0, nullptr);
 			Mapped = nullptr;
 			index_view.BufferLocation = index_buffer->GetGPUVirtualAddress();
+			index_view.Format = DXGI_FORMAT_R32_UINT;
 			index_view.SizeInBytes = sizeof(Index);
-			index_view.Format = DXGI_FORMAT_R16_UINT;
 		}
 		void init_constant_data()
 		{
@@ -500,6 +512,34 @@ namespace arabesque
 			CopyMemory(Mapped, &temp_buffer, sizeof(constant_buffer));
 			constant_buffer->Unmap(0, nullptr);
 			Mapped = nullptr;*/
+		}
+		
+		void set_vertex_data(const std::vector<Mesh::Vertex>& vertices, const std::vector<int>& indices)
+		{
+			HRESULT h_result;
+			void *Mapped;
+			
+			// Write Vertex Datum to Vertex Buffer
+			h_result = vertex_buffer->Map(0, nullptr, &Mapped);
+			assert(SUCCEEDED(h_result) && "Fialed Vertex Buffer Mapping");
+			const size_t size_vertices = sizeof(Mesh::Vertex) * vertices.size();
+			CopyMemory(Mapped, vertices.data(), size_vertices);
+			vertex_buffer->Unmap(0, nullptr);
+			Mapped = nullptr;
+			vertex_view.BufferLocation = vertex_buffer->GetGPUVirtualAddress();
+			vertex_view.StrideInBytes = sizeof(Mesh::Vertex); // Size of 1 Vertex
+			vertex_view.SizeInBytes = size_vertices;	  // Size of All Vertices
+
+			// Write Index Datum to Index Buffer
+			h_result = index_buffer->Map(0, nullptr, &Mapped);
+			assert(SUCCEEDED(h_result) && "Failed Index Buffer Mapping");
+			const size_t size_indices = sizeof(int) * indices.size();
+			CopyMemory(Mapped, indices.data(), size_indices);
+			index_buffer->Unmap(0, nullptr);
+			Mapped = nullptr;
+			index_view.BufferLocation = index_buffer->GetGPUVirtualAddress();
+			index_view.Format = DXGI_FORMAT_R32_UINT;
+			index_view.SizeInBytes = size_indices;
 		}
 
 		void wait_frame()
@@ -549,11 +589,10 @@ namespace arabesque
 			h_result = command_list->Close();
 			assert(SUCCEEDED(h_result) && "Command List Closed");
 		}
-		void Render()
+		void render()
 		{
 			HRESULT h_result;
 
-			init_vertex_data();
 			populate_command_list();
 
 			ID3D12CommandList *const ppCommandList = command_list.Get();

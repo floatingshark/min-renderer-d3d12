@@ -1,6 +1,9 @@
 #include <iostream>
 #include <cassert>
+#include <vector>
+#include <wrl.h>
 #include "window.hpp"
+#include "mesh.hpp"
 #include "directx.hpp"
 
 int main()
@@ -19,8 +22,18 @@ int main()
 	directx->init_directx();
 	std::cout << "Initilized DirectX12" << std::endl;
 
+	// Initialize Objects
+	std::vector<arabesque::Mesh::Vertex> vertices;
+	std::vector<int> indices;
+	arabesque::Mesh::create_plane(vertices, indices);
+	directx->set_vertex_data(vertices, indices);
+
 	// Update Loop
-	window->update_window();
+	while (window->update_flag())
+	{
+		window->update_window();
+		directx->render();
+	}
 
 	std::cout << "End program" << std::endl;
 

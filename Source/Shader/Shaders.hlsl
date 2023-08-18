@@ -4,7 +4,7 @@ cbuffer cbBuffer : register(b0){
 
 struct VS_INPUT{
     float3 Position : POSITION;
-    float3 Color    : COLOR;
+    float4 Color    : COLOR;
 };
 
 // (VS_OUTPUT)
@@ -17,9 +17,10 @@ struct PS_INPUT{
 PS_INPUT VSMain(VS_INPUT input){
     PS_INPUT output;
 
-    float4 pos4 = float4(input.Position, 1.0);
-    output.Position = mul(pos4, WVP);
-    output.Color    = float4(input.Color, 1.0);
+    //float4 pos4 = float4(input.Position, 1.0);
+    //output.Position = mul(pos4, WVP);
+	output.Position = float4(input.Position, 1.0);
+    output.Color    = input.Color;
 
     return output;
 }
