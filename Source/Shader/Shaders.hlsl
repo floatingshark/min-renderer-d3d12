@@ -1,5 +1,8 @@
 cbuffer cbBuffer : register(b0){
-    float4x4 WVP;
+    //float4x4 WVP;
+    float4x4 World;
+    float4x4 View;
+    float4x4 Projection;
 };
 
 struct VS_INPUT{
@@ -17,10 +20,13 @@ struct PS_INPUT{
 PS_INPUT VSMain(VS_INPUT input){
     PS_INPUT output;
 
-    //float4 pos4 = float4(input.Position, 1.0);
-    //output.Position = mul(pos4, WVP);
-	output.Position = float4(input.Position, 1.0);
-    output.Color    = input.Color;
+    float4 pos4 = float4(input.Position, 1.0);
+    pos4 = mul(World, pos4);
+    pos4 = mul(View, pos4);
+    pos4 = mul(Projection, pos4);
+
+	output.Position = pos4;
+    output.Color = input.Color;
 
     return output;
 }

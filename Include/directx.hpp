@@ -513,12 +513,12 @@ namespace arabesque
 			constant_buffer->Unmap(0, nullptr);
 			Mapped = nullptr;*/
 		}
-		
-		void set_vertex_data(const std::vector<Mesh::Vertex>& vertices, const std::vector<int>& indices)
+
+		void set_vertex_data(const std::vector<Mesh::Vertex> &vertices, const std::vector<int> &indices)
 		{
 			HRESULT h_result;
 			void *Mapped;
-			
+
 			// Write Vertex Datum to Vertex Buffer
 			h_result = vertex_buffer->Map(0, nullptr, &Mapped);
 			assert(SUCCEEDED(h_result) && "Fialed Vertex Buffer Mapping");
@@ -528,7 +528,7 @@ namespace arabesque
 			Mapped = nullptr;
 			vertex_view.BufferLocation = vertex_buffer->GetGPUVirtualAddress();
 			vertex_view.StrideInBytes = sizeof(Mesh::Vertex); // Size of 1 Vertex
-			vertex_view.SizeInBytes = size_vertices;	  // Size of All Vertices
+			vertex_view.SizeInBytes = size_vertices;		  // Size of All Vertices
 
 			// Write Index Datum to Index Buffer
 			h_result = index_buffer->Map(0, nullptr, &Mapped);
@@ -540,6 +540,18 @@ namespace arabesque
 			index_view.BufferLocation = index_buffer->GetGPUVirtualAddress();
 			index_view.Format = DXGI_FORMAT_R32_UINT;
 			index_view.SizeInBytes = size_indices;
+		}
+		void set_constant_data(const Parameter::Constant &constant)
+		{
+			HRESULT h_result;
+			void *Mapped;
+			Parameter::Constant temp_buffer = constant;
+
+			h_result = constant_buffer->Map(0, nullptr, &Mapped);
+			assert(SUCCEEDED(h_result) && "Constant Buffer Mappded");
+			CopyMemory(Mapped, &temp_buffer, sizeof(temp_buffer));
+			constant_buffer->Unmap(0, nullptr);
+			Mapped = nullptr;
 		}
 
 		void wait_frame()

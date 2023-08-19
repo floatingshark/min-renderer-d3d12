@@ -1,9 +1,9 @@
 #include <iostream>
 #include <cassert>
 #include <vector>
-#include <wrl.h>
 #include "window.hpp"
 #include "mesh.hpp"
+#include "parameter.hpp"
 #include "directx.hpp"
 
 int main()
@@ -26,7 +26,9 @@ int main()
 	std::vector<arabesque::Mesh::Vertex> vertices;
 	std::vector<int> indices;
 	arabesque::Mesh::create_plane(vertices, indices);
+	std::shared_ptr<arabesque::Parameter> parameter = std::make_shared<arabesque::Parameter>();
 	directx->set_vertex_data(vertices, indices);
+	directx->set_constant_data(parameter->get_constant());
 
 	// Update Loop
 	while (window->update_flag())
