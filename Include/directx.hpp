@@ -562,7 +562,7 @@ namespace arabesque
 		{
 			HRESULT h_result;
 
-			FLOAT ClearColor[4] = {1.0f, 0.0f, 0.0f, 1.0f};
+			FLOAT ClearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
 
 			SetResourceBarrier(D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
