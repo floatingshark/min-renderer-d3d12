@@ -1,20 +1,26 @@
 {
   "version": "2.0.0",
   "tasks": [
-	{
-		"label": "cmake mingw gcc",
-		"type": "shell",
-		"command": "cmake -B ./Build -G 'MinGW Makefiles' .; cmake --build ./Build",
-		"problemMatcher": []
-	},
-	{
-		"label": "cmake clean",
-		"type": "shell",
-		"command": "rmdir /s /q ./Build",
-		"windows": {
-			"command": "rm ./Build -r -force"
-		},
-		"problemMatcher": []
-	}
-]
+    {
+      "label": "cmake mingw gcc",
+      "type": "shell",
+      "command": "cmake -B ./Build -G 'MinGW Makefiles' .; cmake --build ./Build",
+      "problemMatcher": []
+    },
+    {
+      "label": "cmake ninja",
+      "type": "shell",
+      "command": "cmake -B ./Build -G 'Ninja' -DCMAKE_MAKE_PROGRAM=c:/ninja-win/ninja.exe .; cmake --build ./Build",
+      "problemMatcher": []
+    },
+    {
+      "label": "cmake clean",
+      "type": "shell",
+      "command": "rmdir /s /q ./Build",
+      "windows": {
+        "command": "rm ./Build -r -force"
+      },
+      "problemMatcher": []
+    }
+  ]
 }

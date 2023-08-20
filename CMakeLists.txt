@@ -1,15 +1,20 @@
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
+#set(CMAKE_C_COMPILER c:/LLVM/bin/clang.exe)
+#set(CMAKE_CXX_COMPILER c:/LLVM/bin/clang.exe)
+
 project(Arabesque)
 
-set(CMAKE_C_COMPILER clang)
-set(CMAKE_CXX_COMPILER clang++)
-add_definitions(-Wall -g -std=c++11)
+add_definitions(-Wall -g -std=c++17)
 
 include_directories(./Include)
 
-link_directories(./Library/GLFW)
+link_directories(./Library/GLFW/lib-static-ucrt)
+link_directories(./Library/GLFW/lib-vc2022)
 
-add_executable(main ./Source/main.cpp)
+FILE(GLOB main_sources Source/*.cpp)
+FILE(GLOB imgui_sources Include/imgui/*.cpp)
+
+add_executable(main ${main_sources} ${imgui_sources})
 
 target_link_libraries(main glfw3 glfw3dll d3d12 dxgi d3dcompiler)

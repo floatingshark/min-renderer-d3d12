@@ -6,6 +6,11 @@
 #include "parameter.hpp"
 #include "directx.hpp"
 
+
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_dx12.h"
+
 int main()
 {
 	std::cout << "Begin Program" << std::endl;
@@ -16,6 +21,15 @@ int main()
 	HWND hwnd = window->get_hwnd();
 	assert(hwnd && "Failed to get HWND");
 	std::cout << "Prepared Window" << std::endl;
+	
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO &io = ImGui::GetIO();
+	(void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
+	ImGui::StyleColorsLight();
+	ImGui_ImplGlfw_InitForOther(window->get_window(), true);
 
 	// Create DirectX12 Context
 	std::shared_ptr<arabesque::DirectXA> directx = std::make_shared<arabesque::DirectXA>(hwnd);
@@ -36,6 +50,13 @@ int main()
 		window->update_window();
 		directx->render();
 	}
+
+	/*
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
+	*/
+
+	window->terminate();
 
 	std::cout << "End program" << std::endl;
 

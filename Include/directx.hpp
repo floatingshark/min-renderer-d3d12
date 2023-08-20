@@ -36,10 +36,11 @@ namespace arabesque
 		DirectXA(HWND h) : hwnd(h) {}
 		~DirectXA()
 		{
+			/*
 			render_targets[1].Reset();
 			render_targets[0].Reset();
 			delete swap_chain;
-			swap_chain = nullptr;
+			swap_chain = nullptr;*/
 		}
 
 	protected:
@@ -545,11 +546,10 @@ namespace arabesque
 		{
 			HRESULT h_result;
 			void *Mapped;
-			Parameter::Constant temp_buffer = constant;
 
 			h_result = constant_buffer->Map(0, nullptr, &Mapped);
 			assert(SUCCEEDED(h_result) && "Constant Buffer Mappded");
-			CopyMemory(Mapped, &temp_buffer, sizeof(temp_buffer));
+			CopyMemory(Mapped, &constant, sizeof(constant));
 			constant_buffer->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
@@ -624,7 +624,7 @@ namespace arabesque
 			RTVIdx = swap_chain->GetCurrentBackBufferIndex();
 		}
 
-		// https://learn.microsoft.com/ja-jp/windows/win32/api/d3d12/nf-d3d12-d3d12createdevice
+	protected:
 		void GetHardwareAdapter(IDXGIFactory4 *pFactory, IDXGIAdapter1 **ppAdapter)
 		{
 			*ppAdapter = nullptr;

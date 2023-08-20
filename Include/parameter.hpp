@@ -20,22 +20,21 @@ namespace arabesque
 
 		Parameter() { init_constant(); }
 	protected:
-		Constant Const;
+		Constant contant;
 
 	public:
 		void init_constant()
 		{
-			Const.world = glm::mat4(1.f);
-			Const.world = glm::translate(Const.world, glm::vec3(0.5f, 0.0f, 0.0f));
-			Const.world = glm::rotate(Const.world, glm::pi<float>() * 0.05f, glm::vec3(0.f, 1.f, 0.f)); 
-			Const.world = glm::scale(Const.world, glm::vec3(0.7f));
-			Const.view = glm::lookAt(glm::vec3(0.f, 0.f, 0.5f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f));
-			Const.projection = glm::perspective(60.0f, 4.0f / 3.0f, 0.01f, 100.f);
-			std::cout << glm::to_string(Const.projection) << std::endl;
+			contant.world = glm::mat4(1.f);
+			contant.world = glm::translate(contant.world, glm::vec3(0.5f, 0.0f, 0.0f));
+			contant.world = glm::rotate(contant.world, glm::pi<float>() * 0.05f, glm::vec3(0.f, 1.f, 0.f)); 
+			contant.world = glm::scale(contant.world, glm::vec3(0.7f));
+			contant.view = glm::lookAt(glm::vec3(0.f, 0.f, 0.5f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f));
+			contant.projection = glm::perspective(60.0f, 4.0f / 3.0f, 0.01f, 100.f);
 		}
-		Parameter::Constant get_constant()
+		Parameter::Constant& get_constant()
 		{
-			return Const;
+			return contant;
 		}
 	};
 }
