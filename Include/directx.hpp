@@ -1,8 +1,7 @@
 #pragma once
-// #define _XM_NO_INTRINSICS_
 #define _XM_NO_XMVECTOR_OVERLOADS_
 #define RTV_BUFFER_NUM (2)
-#include <iostream>
+
 #include <vector>
 #include <cassert>
 #include <wrl/client.h>
@@ -13,7 +12,10 @@
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include <d3d12sdklayers.h>
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_dx12.h"
 #include "mesh.hpp"
+#include "param.hpp"
 
 namespace arabesque
 {
@@ -34,33 +36,27 @@ namespace arabesque
 
 	public:
 		DirectXA(HWND h) : hwnd(h) {}
-		~DirectXA()
-		{
-			/*
-			render_targets[1].Reset();
-			render_targets[0].Reset();
-			delete swap_chain;
-			swap_chain = nullptr;*/
-		}
+		~DirectXA() {}
 
 	protected:
 		HWND hwnd;
 		UINT width = 800;
 		UINT height = 600;
-		UINT64 frames = 1;
-		const UINT FRAME_COUNT = 2;
+		UINT64 frame_index = 1;
+		const UINT NUM_FRAMES_IN_FLIGHT = 2;
 		const bool USE_WARP_DEVICE = false;
 		UINT RTVIdx = 0;
 		D3D12_VIEWPORT viewport;
 		D3D12_RECT rect_scissor;
-		HANDLE handle_fence_event;
 		Microsoft::WRL::ComPtr<IDXGIFactory4> factory;
 		Microsoft::WRL::ComPtr<ID3D12Device> device;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue> command_queue;
 		Microsoft::WRL::ComPtr<ID3D12Fence> queue_fence;
+		HANDLE handle_fence_event;
 		IDXGISwapChain3 *swap_chain;
 		D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle[RTV_BUFFER_NUM];
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtv_heap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srv_heap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> dsb_heap;
 		Microsoft::WRL::ComPtr<ID3D12Resource> depth_buffer;
 		D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle;
@@ -95,9 +91,8 @@ namespace arabesque
 			init_shader();
 			init_pipeline_state_object();
 			init_vertex_data();
-			init_constant_data();
 
-			render();
+			//render();
 		}
 		void init_viewport()
 		{
@@ -172,7 +167,7 @@ namespace arabesque
 
 			DXGI_SWAP_CHAIN_DESC swapchain_desc = {};
 			ZeroMemory(&swapchain_desc, sizeof(swapchain_desc));
-			swapchain_desc.BufferCount = FRAME_COUNT;
+			swapchain_desc.BufferCount = NUM_FRAMES_IN_FLIGHT;
 			swapchain_desc.BufferDesc.Width = width;
 			swapchain_desc.BufferDesc.Height = height;
 			swapchain_desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -195,14 +190,30 @@ namespace arabesque
 		{
 			HRESULT h_result;
 
-			D3D12_DESCRIPTOR_HEAP_DESC HeapDesc;
-			ZeroMemory(&HeapDesc, sizeof(HeapDesc));
-			HeapDesc.NumDescriptors = 2;
-			HeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-			HeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-			HeapDesc.NodeMask = 0;
-			h_result = device->CreateDescriptorHeap(&HeapDesc, IID_PPV_ARGS(&rtv_heap));
+			D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc;
+			ZeroMemory(&rtv_heap_desc, sizeof(rtv_heap_desc));
+			rtv_heap_desc.NumDescriptors = 2;
+			rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+			rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			rtv_heap_desc.NodeMask = 0;
+			h_result = device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&rtv_heap));
 			assert(SUCCEEDED(h_result) && "Create RTV Descriptor Heap");
+
+			D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc;
+			srv_heap_desc.NumDescriptors = 1;
+			srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+			srv_heap_desc.NodeMask = 0;
+			h_result = device->CreateDescriptorHeap(&srv_heap_desc, IID_PPV_ARGS(&srv_heap));
+
+			D3D12_DESCRIPTOR_HEAP_DESC dsb_heap_desc;
+			ZeroMemory(&dsb_heap_desc, sizeof(dsb_heap_desc));
+			dsb_heap_desc.NumDescriptors = 1;
+			dsb_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+			dsb_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			dsb_heap_desc.NodeMask = 0;
+			h_result = device->CreateDescriptorHeap(&dsb_heap_desc, IID_PPV_ARGS(&dsb_heap));
+			assert(SUCCEEDED(h_result) && "Create DSB Descriptor Heap");
 		}
 		void init_render_target()
 		{
@@ -221,14 +232,6 @@ namespace arabesque
 		void init_depth_buffer()
 		{
 			HRESULT h_result;
-			D3D12_DESCRIPTOR_HEAP_DESC dsb_heap_desc;
-			ZeroMemory(&dsb_heap_desc, sizeof(dsb_heap_desc));
-			dsb_heap_desc.NumDescriptors = 1;
-			dsb_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-			dsb_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-			dsb_heap_desc.NodeMask = 0;
-			h_result = device->CreateDescriptorHeap(&dsb_heap_desc, IID_PPV_ARGS(&dsb_heap));
-			assert(SUCCEEDED(h_result) && "Create DSB Descriptor Heap");
 
 			D3D12_RESOURCE_DESC depth_desc;
 			D3D12_HEAP_PROPERTIES heap_props;
@@ -477,43 +480,6 @@ namespace arabesque
 			index_view.Format = DXGI_FORMAT_R32_UINT;
 			index_view.SizeInBytes = sizeof(Index);
 		}
-		void init_constant_data()
-		{
-			/*
-			HRESULT h_result;
-			void *Mapped;
-			ConstantBufferData temp_buffer;
-
-			// World Matrix
-			DirectX::XMMATRIX World;
-			FLOAT rotate = 0.f;
-			World = DirectX::XMMatrixRotationY(rotate);
-			DirectX::XMStoreFloat4x4(&temp_buffer.World, XMMatrixTranspose(World));
-
-			// View Matrix
-			DirectX::XMVECTORF32 eyePosition = {0.0f, 0.0f, -3.0f, 0.0f};
-			DirectX::XMVECTORF32 FocusPosition = {0.0f, 0.0f, 0.0f, 0.0f};
-			DirectX::XMVECTORF32 upDirection = {0.0f, 1.0f, 0.0f, 0.0f};
-			DirectX::XMMATRIX View = XMMatrixLookAtLH(eyePosition, FocusPosition, upDirection);
-			DirectX::XMStoreFloat4(&temp_buffer.EyePos, eyePosition);
-
-			// Projection Matrix
-			DirectX::XMMATRIX Projection = DirectX::XMMatrixPerspectiveFovLH(
-				DirectX::XMConvertToRadians(60.0f),
-				(float)width / (float)height,
-				1.0f,
-				20.0f);
-
-			// WVP Matrix
-			DirectX::XMMATRIX WVP = XMMatrixTranspose(World * View * Projection);
-			DirectX::XMStoreFloat4x4(&temp_buffer.WVP, WVP);
-
-			h_result = constant_buffer->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(h_result) && "Constant Buffer Written");
-			CopyMemory(Mapped, &temp_buffer, sizeof(constant_buffer));
-			constant_buffer->Unmap(0, nullptr);
-			Mapped = nullptr;*/
-		}
 
 		void set_vertex_data(const std::vector<Mesh::Vertex> &vertices, const std::vector<int> &indices)
 		{
@@ -542,7 +508,7 @@ namespace arabesque
 			index_view.Format = DXGI_FORMAT_R32_UINT;
 			index_view.SizeInBytes = size_indices;
 		}
-		void set_constant_data(const Parameter::Constant &constant)
+		void set_constant_data(const Param::Constant &constant)
 		{
 			HRESULT h_result;
 			void *Mapped;
@@ -558,9 +524,9 @@ namespace arabesque
 		{
 			HRESULT h_result;
 
-			const UINT64 fence = frames;
+			const UINT64 fence = frame_index;
 			h_result = command_queue->Signal(queue_fence.Get(), fence);
-			++frames;
+			++frame_index;
 			assert(SUCCEEDED(h_result) && "Command Queue Signal");
 
 			if (queue_fence->GetCompletedValue() < fence)
@@ -596,6 +562,9 @@ namespace arabesque
 
 			command_list->DrawIndexedInstanced(6, 1, 0, 0, 0);
 
+			command_list->SetDescriptorHeaps(1, srv_heap.GetAddressOf());
+			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), command_list.Get());
+
 			SetResourceBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 			h_result = command_list->Close();
@@ -622,6 +591,19 @@ namespace arabesque
 			assert(SUCCEEDED(h_result) && "Swapchain Present");
 
 			RTVIdx = swap_chain->GetCurrentBackBufferIndex();
+		}
+
+		inline UINT64 get_num_frames()
+		{
+			return NUM_FRAMES_IN_FLIGHT;
+		}
+		inline Microsoft::WRL::ComPtr<ID3D12Device> get_device()
+		{
+			return device;
+		}
+		inline Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> get_srv_heap()
+		{
+			return srv_heap;
 		}
 
 	protected:

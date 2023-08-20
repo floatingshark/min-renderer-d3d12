@@ -8,7 +8,7 @@
 
 namespace arabesque
 {
-	class Parameter
+	class Param
 	{
 	public:
 		typedef struct Constant
@@ -18,7 +18,7 @@ namespace arabesque
 			glm::mat4x4 projection;
 		} Constant;
 
-		Parameter() { init_constant(); }
+		Param() { init_constant(); }
 	protected:
 		Constant contant;
 
@@ -27,12 +27,12 @@ namespace arabesque
 		{
 			contant.world = glm::mat4(1.f);
 			contant.world = glm::translate(contant.world, glm::vec3(0.5f, 0.0f, 0.0f));
-			contant.world = glm::rotate(contant.world, glm::pi<float>() * 0.05f, glm::vec3(0.f, 1.f, 0.f)); 
+			contant.world = glm::rotate(contant.world, glm::pi<float>() * 0.1f, glm::vec3(0.f, 1.f, 0.f)); 
 			contant.world = glm::scale(contant.world, glm::vec3(0.7f));
 			contant.view = glm::lookAt(glm::vec3(0.f, 0.f, 0.5f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f));
 			contant.projection = glm::perspective(60.0f, 4.0f / 3.0f, 0.01f, 100.f);
 		}
-		Parameter::Constant& get_constant()
+		Param::Constant& get_constant()
 		{
 			return contant;
 		}

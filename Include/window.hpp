@@ -25,12 +25,11 @@ namespace arabesque
 			glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 			this->window = glfwCreateWindow(WIDTH, HEIGHT, "Arabesque", nullptr, nullptr);
 		}
-
-		GLFWwindow *get_window()
+		inline GLFWwindow *get_window()
 		{
 			return window;
 		}
-		HWND get_hwnd()
+		inline HWND get_hwnd()
 		{
 			return glfwGetWin32Window(this->window);
 		}

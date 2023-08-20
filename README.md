@@ -1,7 +1,7 @@
 # Arabesque
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)  
 A Rendering application with **2 API**, DirectX2 and Vulkan (developing).  
-This is assumed to be compiled with LLVM clang compatible with MSVC for DirectX.
+This is assumed to be compiled with LLVM clang compatible with MSVC.
 
 # Dependency
 Common
