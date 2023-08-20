@@ -15,7 +15,8 @@
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_dx12.h"
 #include "mesh.hpp"
-#include "param.hpp"
+#include "constant.hpp"
+#include "global.hpp"
 
 namespace arabesque
 {
@@ -508,7 +509,7 @@ namespace arabesque
 			index_view.Format = DXGI_FORMAT_R32_UINT;
 			index_view.SizeInBytes = size_indices;
 		}
-		void set_constant_data(const Param::Constant &constant)
+		void set_constant_data(const Constant::WVP &constant)
 		{
 			HRESULT h_result;
 			void *Mapped;
@@ -540,7 +541,7 @@ namespace arabesque
 		{
 			HRESULT h_result;
 
-			FLOAT ClearColor[4] = {0.0f, 0.0f, 0.0f, 1.0f};
+			FLOAT ClearColor[4] = {Global::color[0], Global::color[1], Global::color[2], Global::color[3]};
 
 			SetResourceBarrier(D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 
