@@ -3,7 +3,7 @@
 #include <cassert>
 #include <vector>
 
-namespace arabesque
+namespace arabesques
 {
 	class Global
 	{

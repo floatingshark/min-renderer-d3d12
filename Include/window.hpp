@@ -6,14 +6,14 @@
 #include "GLFW/glfw3.h"
 #include "GLFW/glfw3native.h"
 
-namespace arabesque
+namespace arabesques
 {
 	class Window
 	{
 	protected:
 		const uint32_t WIDTH = 800;
 		const uint32_t HEIGHT = 600;
-		const std::string NAME = "Arabesque";
+		const std::string NAME = "arabesques";
 		GLFWwindow *window = nullptr;
 
 	public:
@@ -23,7 +23,7 @@ namespace arabesque
 			glfwInit();
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 			glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-			this->window = glfwCreateWindow(WIDTH, HEIGHT, "Arabesque", nullptr, nullptr);
+			this->window = glfwCreateWindow(WIDTH, HEIGHT, NAME.c_str(), nullptr, nullptr);
 		}
 		inline GLFWwindow *get_window()
 		{

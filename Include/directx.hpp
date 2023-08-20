@@ -18,7 +18,7 @@
 #include "constant.hpp"
 #include "global.hpp"
 
-namespace arabesque
+namespace arabesques
 {
 	class DirectXA
 	{

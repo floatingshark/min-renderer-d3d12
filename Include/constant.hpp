@@ -7,7 +7,7 @@
 #include "glm/gtx/string_cast.hpp"
 #include "global.hpp"
 
-namespace arabesque
+namespace arabesques
 {
 	class Constant
 	{

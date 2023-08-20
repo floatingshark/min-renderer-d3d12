@@ -3,7 +3,7 @@
 #include <vector>
 #include <cassert>
 
-namespace arabesque
+namespace arabesques
 {
 	class Mesh
 	{
