@@ -12,8 +12,8 @@
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include <d3d12sdklayers.h>
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_dx12.h"
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_dx12.h>
 #include "mesh.hpp"
 #include "constant.hpp"
 #include "global.hpp"
@@ -22,19 +22,6 @@ namespace arabesques
 {
 	class DirectXA
 	{
-		typedef struct Vertex3D
-		{
-			float Position[3];
-			float Color[4];
-		} Vertex3D;
-
-		typedef struct ConstantBufferData
-		{
-			DirectX::XMFLOAT4X4 WVP;
-			DirectX::XMFLOAT4 EyePos;
-			DirectX::XMFLOAT4X4 World;
-		} ConstantBufferData;
-
 	public:
 		DirectXA(HWND h) : hwnd(h) {}
 		~DirectXA() {}
@@ -56,11 +43,11 @@ namespace arabesques
 		HANDLE handle_fence_event;
 		IDXGISwapChain3 *swap_chain;
 		D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle[RTV_BUFFER_NUM];
+		D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtv_heap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srv_heap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> dsb_heap;
 		Microsoft::WRL::ComPtr<ID3D12Resource> depth_buffer;
-		D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle;
 		Microsoft::WRL::ComPtr<ID3D12Resource> render_targets[RTV_BUFFER_NUM];
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> command_allocator;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> command_list;
@@ -68,15 +55,18 @@ namespace arabesques
 		Microsoft::WRL::ComPtr<ID3DBlob> root_signature_blob;
 		Microsoft::WRL::ComPtr<ID3DBlob> error_blob;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> pipeline_state;
+		// For Shaders
 		Microsoft::WRL::ComPtr<ID3DBlob> vertex_shader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixel_shader;
+		Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource> constant_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource> index_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;
-		D3D12_INDEX_BUFFER_VIEW index_view;
 		D3D12_VERTEX_BUFFER_VIEW vertex_view;
+		D3D12_INDEX_BUFFER_VIEW index_view;
+		UINT index_count;
 
 	public:
+		// Initialize Functions
 		void init_directx()
 		{
 			init_viewport();
@@ -93,7 +83,7 @@ namespace arabesques
 			init_pipeline_state_object();
 			init_vertex_data();
 
-			//render();
+			// render();
 		}
 		void init_viewport()
 		{
@@ -453,6 +443,12 @@ namespace arabesques
 			HRESULT h_result;
 			void *Mapped;
 
+			typedef struct Vertex3D
+			{
+				float Position[3];
+				float Color[4];
+			} Vertex3D;
+
 			// Write Vertex Datum to Vertex Buffer
 			Vertex3D Vertices[] = {
 				{{-1.f, 1.f, 0.f}, {1.f, 0.f, 0.f, 1.f}},
@@ -480,47 +476,10 @@ namespace arabesques
 			index_view.BufferLocation = index_buffer->GetGPUVirtualAddress();
 			index_view.Format = DXGI_FORMAT_R32_UINT;
 			index_view.SizeInBytes = sizeof(Index);
+			index_count = 6;
 		}
 
-		void set_vertex_data(const std::vector<Mesh::Vertex> &vertices, const std::vector<int> &indices)
-		{
-			HRESULT h_result;
-			void *Mapped;
-
-			// Write Vertex Datum to Vertex Buffer
-			h_result = vertex_buffer->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(h_result) && "Fialed Vertex Buffer Mapping");
-			const size_t size_vertices = sizeof(Mesh::Vertex) * vertices.size();
-			CopyMemory(Mapped, vertices.data(), size_vertices);
-			vertex_buffer->Unmap(0, nullptr);
-			Mapped = nullptr;
-			vertex_view.BufferLocation = vertex_buffer->GetGPUVirtualAddress();
-			vertex_view.StrideInBytes = sizeof(Mesh::Vertex); // Size of 1 Vertex
-			vertex_view.SizeInBytes = size_vertices;		  // Size of All Vertices
-
-			// Write Index Datum to Index Buffer
-			h_result = index_buffer->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(h_result) && "Failed Index Buffer Mapping");
-			const size_t size_indices = sizeof(int) * indices.size();
-			CopyMemory(Mapped, indices.data(), size_indices);
-			index_buffer->Unmap(0, nullptr);
-			Mapped = nullptr;
-			index_view.BufferLocation = index_buffer->GetGPUVirtualAddress();
-			index_view.Format = DXGI_FORMAT_R32_UINT;
-			index_view.SizeInBytes = size_indices;
-		}
-		void set_constant_data(const Constant::WVP &constant)
-		{
-			HRESULT h_result;
-			void *Mapped;
-
-			h_result = constant_buffer->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(h_result) && "Constant Buffer Mappded");
-			CopyMemory(Mapped, &constant, sizeof(constant));
-			constant_buffer->Unmap(0, nullptr);
-			Mapped = nullptr;
-		}
-
+		// Update Functions
 		void wait_frame()
 		{
 			HRESULT h_result;
@@ -561,7 +520,7 @@ namespace arabesques
 			command_list->IASetVertexBuffers(0, 1, &vertex_view);
 			command_list->IASetIndexBuffer(&index_view);
 
-			command_list->DrawIndexedInstanced(6, 1, 0, 0, 0);
+			command_list->DrawIndexedInstanced(index_count, 1, 0, 0, 0);
 
 			command_list->SetDescriptorHeaps(1, srv_heap.GetAddressOf());
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), command_list.Get());
@@ -594,6 +553,48 @@ namespace arabesques
 			RTVIdx = swap_chain->GetCurrentBackBufferIndex();
 		}
 
+		// Setter Functions
+		void set_vertex_data(const std::vector<Mesh::Vertex> &vertices, const std::vector<int> &indices)
+		{
+			HRESULT h_result;
+			void *Mapped;
+
+			// Write Vertex Datum to Vertex Buffer
+			h_result = vertex_buffer->Map(0, nullptr, &Mapped);
+			assert(SUCCEEDED(h_result) && "Fialed Vertex Buffer Mapping");
+			const size_t size_vertices = sizeof(Mesh::Vertex) * vertices.size();
+			CopyMemory(Mapped, vertices.data(), size_vertices);
+			vertex_buffer->Unmap(0, nullptr);
+			Mapped = nullptr;
+			vertex_view.BufferLocation = vertex_buffer->GetGPUVirtualAddress();
+			vertex_view.StrideInBytes = sizeof(Mesh::Vertex); // Size of 1 Vertex
+			vertex_view.SizeInBytes = size_vertices;		  // Size of All Vertices
+
+			// Write Index Datum to Index Buffer
+			h_result = index_buffer->Map(0, nullptr, &Mapped);
+			assert(SUCCEEDED(h_result) && "Failed Index Buffer Mapping");
+			const size_t size_indices = sizeof(int) * indices.size();
+			CopyMemory(Mapped, indices.data(), size_indices);
+			index_buffer->Unmap(0, nullptr);
+			Mapped = nullptr;
+			index_view.BufferLocation = index_buffer->GetGPUVirtualAddress();
+			index_view.Format = DXGI_FORMAT_R32_UINT;
+			index_view.SizeInBytes = size_indices;
+			index_count = indices.size();
+		}
+		void set_constant_data(const Constant::WVP &constant)
+		{
+			HRESULT h_result;
+			void *Mapped;
+
+			h_result = constant_buffer->Map(0, nullptr, &Mapped);
+			assert(SUCCEEDED(h_result) && "Constant Buffer Mappded");
+			CopyMemory(Mapped, &constant, sizeof(constant));
+			constant_buffer->Unmap(0, nullptr);
+			Mapped = nullptr;
+		}
+
+		// Getter Functions
 		inline UINT64 get_num_frames()
 		{
 			return NUM_FRAMES_IN_FLIGHT;

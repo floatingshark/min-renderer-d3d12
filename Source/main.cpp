@@ -2,15 +2,15 @@
 #include <cassert>
 #include <vector>
 #include <dxgi.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_dx12.h>
 #include "window.hpp"
 #include "mesh.hpp"
 #include "constant.hpp"
 #include "directx.hpp"
 #include "ui.hpp"
-
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_glfw.h"
-#include "imgui/imgui_impl_dx12.h"
+#include "control.hpp"
 
 int main()
 {
@@ -29,12 +29,16 @@ int main()
 	// Initialize Default Object
 	std::vector<arabesques::Mesh::Vertex> vertices;
 	std::vector<int> indices;
-	arabesques::Mesh::create_plane(vertices, indices);
+	//arabesques::Mesh::create_plane(vertices, indices);
+	arabesques::Mesh::create_cube(vertices, indices);
 	directx->set_vertex_data(vertices, indices);
 
 	// Initialize Constant
 	std::shared_ptr<arabesques::Constant> constant = std::make_shared<arabesques::Constant>();
 	directx->set_constant_data(constant->get_wvp());
+
+	// Initialize Control
+	std::shared_ptr<arabesques::Control> control = std::make_shared<arabesques::Control>();
 
 	// Initialize UI
 	std::shared_ptr<arabesques::UI> ui = std::make_shared<arabesques::UI>();
@@ -47,11 +51,16 @@ int main()
 	{
 		ui->update();
 
+		control->init_via_imgui();
+		control->update();
+
+		ui->render();
+
 		constant->calculate_wvp();
 		directx->set_constant_data(constant->get_wvp());
 
 		window->update_window();
-		
+
 		directx->render();
 	}
 

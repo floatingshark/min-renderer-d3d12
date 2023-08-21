@@ -2,17 +2,17 @@
 #include <cassert>
 #include <vector>
 #include <dxgi.h>
-#include "GLFW/glfw3.h"
-#include "GLFW/glfw3native.h"
 #include <d3d12.h>
 #include <d3d12shader.h>
 #include <dxgi1_4.h>
 #include <d3dcompiler.h>
 #include <DirectXMath.h>
 #include <d3d12sdklayers.h>
-#include "imgui/imgui.h"
-#include "imgui/imgui_impl_glfw.h"
-#include "imgui/imgui_impl_dx12.h"
+#include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
+#include <imgui/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_dx12.h>
 #include "constant.hpp"
 #include "global.hpp"
 
@@ -31,7 +31,6 @@ namespace arabesques
 			ImGuiIO &io = ImGui::GetIO();
 			(void)io;
 			io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-			io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 			ImGui::StyleColorsLight();
 		}
 		void init_imgui_glfw(GLFWwindow *window)
@@ -57,6 +56,9 @@ namespace arabesques
 				ImGui::ShowDemoWindow(&use_demo);
 			}
 			window1();
+		}
+		void render()
+		{
 			ImGui::Render();
 		}
 		void shutdown()
@@ -65,12 +67,16 @@ namespace arabesques
 			ImGui_ImplGlfw_Shutdown();
 			ImGui::DestroyContext();
 		}
+		inline ImGuiIO &get_io()
+		{
+			return ImGui::GetIO();
+		}
 
 	protected:
 		void window1()
 		{
 			ImGui::Begin("Control Panel");
-			
+
 			ImGui::Text("fps: %.1f", ImGui::GetIO().Framerate);
 			enum Element_GraphicsAPI
 			{
@@ -88,6 +94,17 @@ namespace arabesques
 			ImGui::DragFloat3("View Pos", Global::view_position, 0.1f, -10.0f, 10.0f);
 			ImGui::DragFloat3("LookAt", Global::lookat, 0.1f, -10.0f, 10.0f);
 			ImGui::DragFloat3("Up", Global::up, 0.01f, -1.0f, 1.0f);
+
+			ImGui::SeparatorText("Projection");
+			ImGui::DragFloat("FOV", &Global::FOV, 1.f, 0.0f, 360.0f);
+
+			ImGuiIO &io = ImGui::GetIO();
+			ImGui::Text("io.WantCaptureMouse: %d", io.WantCaptureMouse);
+			ImGui::Text("io.WantCaptureMouseUnlessPopupClose: %d", io.WantCaptureMouseUnlessPopupClose);
+			ImGui::Text("io.WantCaptureKeyboard: %d", io.WantCaptureKeyboard);
+			ImGui::Text("io.WantTextInput: %d", io.WantTextInput);
+			ImGui::Text("io.WantSetMousePos: %d", io.WantSetMousePos);
+			ImGui::Text("io.NavActive: %d, io.NavVisible: %d", io.NavActive, io.NavVisible);
 
 			ImGui::End();
 		}

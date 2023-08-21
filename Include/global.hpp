@@ -15,8 +15,8 @@ namespace arabesques
 		static float FOV;
 	};
 	float Global::color[4] = {0.725f, 0.788f, 0.788f, 1.f};
-	float Global::view_position[3] = {0.f, 0.f, 0.5f};
+	float Global::view_position[3] = {0.f, 0.f, 10.f};
 	float Global::lookat[3] = {0.f, 0.f, 0.f};
-	float Global::up[3] = {0.f, -1.f, 0.f};
+	float Global::up[3] = {0.f, 1.f, 0.f};
 	float Global::FOV = 60.f;
 }

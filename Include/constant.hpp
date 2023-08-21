@@ -2,9 +2,9 @@
 #include <iostream>
 #include <cassert>
 #include <vector>
-#include "glm/glm.hpp"
-#include "glm/gtc/matrix_transform.hpp"
-#include "glm/gtx/string_cast.hpp"
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include "global.hpp"
 
 namespace arabesques
@@ -38,7 +38,7 @@ namespace arabesques
 				glm::vec3(Global::up[0], Global::up[1], Global::up[2])
 			);
 			wvp.projection = glm::perspective(
-				Global::FOV,
+				glm::radians(Global::FOV),
 				4.f / 3.f,
 				0.01f,
 				100.f
