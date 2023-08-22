@@ -20,5 +20,5 @@ namespace arabesques
 	float Global::lookat[3] = {0.f, 0.f, 0.f};
 	float Global::up[3] = {0.f, 0.f, 1.f};
 	float Global::FOV = 60.f;
-	float Global::light_position[3] = {0.f, 0.f, 3.f};
+	float Global::light_position[3] = {1.f, -2.f, 3.f};
 }

@@ -29,9 +29,10 @@ int main()
 	// Initialize Default Object
 	std::vector<arabesques::Mesh::Vertex> vertices;
 	std::vector<int> indices;
-	// arabesques::Mesh::create_plane(vertices, indices);
-	arabesques::Mesh::create_cube(vertices, indices);
+	//arabesques::Mesh::create_plane(vertices, indices);
+	arabesques::Mesh::create_torus(vertices, indices);
 	directx->set_vertex_data(vertices, indices);
+	std::cout << "Prepared Mesh Data" << std::endl;
 
 	// Initialize Constant
 	std::shared_ptr<arabesques::Constant> constant = std::make_shared<arabesques::Constant>();
