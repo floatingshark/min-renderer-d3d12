@@ -19,15 +19,25 @@ namespace arabesques
 			glm::mat4x4 projection;
 		} WVP;
 
+		typedef struct Light
+		{
+			glm::vec4 light_pos;
+			glm::vec4 view_pos;
+		} Light;
+
 		Constant() { init(); }
 	protected:
 		WVP wvp;
+		Light light;
 	public:
 		void init()
 		{
 			wvp.world = glm::mat4(1.f);
 			wvp.view = glm::lookAt(glm::vec3(0.f, 0.f, 0.5f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f));
 			wvp.projection = glm::perspective(60.0f, 4.0f / 3.0f, 0.01f, 100.f);
+
+			light.light_pos = glm::vec4(0.f, 10.f, 0.f, 1.f);
+			light.view_pos =glm::vec4(0.f, 0.f, 0.5f, 1.f);
 		}
 		void calculate_wvp()
 		{
@@ -44,9 +54,18 @@ namespace arabesques
 				100.f
 			);
 		}
-		Constant::WVP& get_wvp()
+		void calculate_light()
+		{
+			light.light_pos = glm::vec4(Global::light_position[0], Global::light_position[1], Global::light_position[2], 1.f);
+			light.view_pos = glm::vec4(Global::view_position[0], Global::view_position[1], Global::view_position[2], 1.f);
+		}
+		inline Constant::WVP& get_wvp()
 		{
 			return wvp;
+		}
+		inline Constant::Light& get_light()
+		{
+			return light;
 		}
 	};
 }

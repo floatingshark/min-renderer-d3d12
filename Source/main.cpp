@@ -29,13 +29,12 @@ int main()
 	// Initialize Default Object
 	std::vector<arabesques::Mesh::Vertex> vertices;
 	std::vector<int> indices;
-	//arabesques::Mesh::create_plane(vertices, indices);
+	// arabesques::Mesh::create_plane(vertices, indices);
 	arabesques::Mesh::create_cube(vertices, indices);
 	directx->set_vertex_data(vertices, indices);
 
 	// Initialize Constant
 	std::shared_ptr<arabesques::Constant> constant = std::make_shared<arabesques::Constant>();
-	directx->set_constant_data(constant->get_wvp());
 
 	// Initialize Control
 	std::shared_ptr<arabesques::Control> control = std::make_shared<arabesques::Control>();
@@ -57,7 +56,9 @@ int main()
 		ui->render();
 
 		constant->calculate_wvp();
-		directx->set_constant_data(constant->get_wvp());
+		constant->calculate_light();
+		directx->set_constant_data_wvp(constant->get_wvp());
+		directx->set_constant_data_light(constant->get_light());
 
 		window->update_window();
 

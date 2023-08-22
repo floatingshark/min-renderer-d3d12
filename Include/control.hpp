@@ -23,8 +23,6 @@ namespace arabesques
 		bool left_click_released;
 		bool wheel_click;
 
-		glm::vec3 temp_pos;
-
 	public:
 		void init_via_imgui()
 		{
@@ -53,17 +51,9 @@ namespace arabesques
 				glm::mat4 rotate_x = glm::rotate(glm::mat4(1.f), -move[0] / 360.f, up);
 				pos = rotate_x * glm::vec4(pos, 1.f);
 
-				if (temp_pos[0] == 0.f && temp_pos[1] == 0.f)
-				{
-					temp_pos = pos;
-				}
-				glm::vec3 axis = glm::cross(up, temp_pos);
+				glm::vec3 axis = glm::cross(up, pos);
 				glm::mat4 rotate_y = glm::rotate(glm::mat4(1.f), -move[1] / 360.f, axis);
 				pos = rotate_y * glm::vec4(pos, 1.f);
-			}
-			if (left_click_released)
-			{
-				temp_pos = glm::vec3(0.f);
 			}
 
 			// Mouse Wheel Update

@@ -98,13 +98,9 @@ namespace arabesques
 			ImGui::SeparatorText("Projection");
 			ImGui::DragFloat("FOV", &Global::FOV, 1.f, 0.0f, 360.0f);
 
-			ImGuiIO &io = ImGui::GetIO();
-			ImGui::Text("io.WantCaptureMouse: %d", io.WantCaptureMouse);
-			ImGui::Text("io.WantCaptureMouseUnlessPopupClose: %d", io.WantCaptureMouseUnlessPopupClose);
-			ImGui::Text("io.WantCaptureKeyboard: %d", io.WantCaptureKeyboard);
-			ImGui::Text("io.WantTextInput: %d", io.WantTextInput);
-			ImGui::Text("io.WantSetMousePos: %d", io.WantSetMousePos);
-			ImGui::Text("io.NavActive: %d, io.NavVisible: %d", io.NavActive, io.NavVisible);
+			
+			ImGui::SeparatorText("Light");
+			ImGui::DragFloat3("Light Pos", Global::light_position, 0.1f, -10.0f, 10.0f);
 
 			ImGui::End();
 		}

@@ -2,6 +2,7 @@
 #define _XM_NO_XMVECTOR_OVERLOADS_
 #define RTV_BUFFER_NUM (2)
 
+#include <iostream>
 #include <vector>
 #include <cassert>
 #include <wrl/client.h>
@@ -58,8 +59,8 @@ namespace arabesques
 		// For Shaders
 		Microsoft::WRL::ComPtr<ID3DBlob> vertex_shader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixel_shader;
+		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> constant_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource> constant_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource> index_buffer;
 		D3D12_VERTEX_BUFFER_VIEW vertex_view;
 		D3D12_INDEX_BUFFER_VIEW index_view;
@@ -301,26 +302,47 @@ namespace arabesques
 			ResourceDesc.SampleDesc.Count = 1;
 			ResourceDesc.SampleDesc.Quality = 0;
 
-			h_result = device->CreateCommittedResource(&HeapPropeties, D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&constant_buffer));
-			assert(SUCCEEDED(h_result) && "Create Constant Buffer");
+			const int cbuff_size = 2;
+			constant_buffer.resize(cbuff_size);
+			for (int i = 0; i < 2; i++)
+			{
+				h_result = device->CreateCommittedResource(&HeapPropeties, D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&constant_buffer[i]));
+				assert(SUCCEEDED(h_result) && "Create Constant Buffer");
+			}
 			h_result = device->CreateCommittedResource(&HeapPropeties, D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&index_buffer));
 			assert(SUCCEEDED(h_result) && "Create Index Buffer");
 			h_result = device->CreateCommittedResource(&HeapPropeties, D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&vertex_buffer));
 			assert(SUCCEEDED(h_result) && "Create Vertex Buffer");
 		}
+		void init_shader()
+		{
+			HRESULT h_result;
+			UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+			// Stop When Shader Compile Error
+			h_result = D3DCompileFromFile(L"./Source/Shader/PhongShaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertex_shader, nullptr);
+			assert(SUCCEEDED(h_result) && "Compile Vertex Shader");
+			h_result = D3DCompileFromFile(L"./Source/Shader/PhongShaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixel_shader, nullptr);
+			assert(SUCCEEDED(h_result) && "Compile Pixel Shader");
+		}
 		void init_root_signature()
 		{
 			HRESULT h_result;
 			D3D12_ROOT_SIGNATURE_DESC RootSignatureDesc;
-			D3D12_ROOT_PARAMETER RootParameters[1];
+			D3D12_ROOT_PARAMETER RootParameters[2];
 
 			ZeroMemory(&RootSignatureDesc, sizeof(RootSignatureDesc));
 			ZeroMemory(&RootParameters[0], sizeof(RootParameters[0]));
+			ZeroMemory(&RootParameters[1], sizeof(RootParameters[1]));
 
 			RootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
 			RootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 			RootParameters[0].Descriptor.ShaderRegister = 0;
 			RootParameters[0].Descriptor.RegisterSpace = 0;
+
+			RootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+			RootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+			RootParameters[1].Descriptor.ShaderRegister = 1;
+			RootParameters[1].Descriptor.RegisterSpace = 0;
 
 			RootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 			RootSignatureDesc.NumParameters = _countof(RootParameters);
@@ -332,16 +354,6 @@ namespace arabesques
 			h_result = device->CreateRootSignature(0, root_signature_blob->GetBufferPointer(), root_signature_blob->GetBufferSize(), IID_PPV_ARGS(&root_signature));
 			assert(SUCCEEDED(h_result) && "Create Root Signature");
 		}
-		void init_shader()
-		{
-			HRESULT h_result;
-			UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-			// Stop When Shader Compile Error
-			h_result = D3DCompileFromFile(L"./Source/Shader/Shaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertex_shader, nullptr);
-			assert(SUCCEEDED(h_result) && "Compile Vertex Shader");
-			h_result = D3DCompileFromFile(L"./Source/Shader/Shaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixel_shader, nullptr);
-			assert(SUCCEEDED(h_result) && "Compile Pixel Shader");
-		}
 		void init_pipeline_state_object()
 		{
 			HRESULT h_result;
@@ -350,6 +362,7 @@ namespace arabesques
 			D3D12_INPUT_ELEMENT_DESC desc_input_elements[] = {
 				{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 				{"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+				{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 			};
 
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC pipline_state_desc;
@@ -509,7 +522,8 @@ namespace arabesques
 
 			command_list->SetGraphicsRootSignature(root_signature.Get());
 			command_list->SetPipelineState(pipeline_state.Get());
-			command_list->SetGraphicsRootConstantBufferView(0, constant_buffer->GetGPUVirtualAddress());
+			command_list->SetGraphicsRootConstantBufferView(0, constant_buffer[0]->GetGPUVirtualAddress());
+			command_list->SetGraphicsRootConstantBufferView(1, constant_buffer[1]->GetGPUVirtualAddress());
 
 			command_list->RSSetViewports(1, &viewport);
 			command_list->RSSetScissorRects(1, &rect_scissor);
@@ -582,15 +596,26 @@ namespace arabesques
 			index_view.SizeInBytes = size_indices;
 			index_count = indices.size();
 		}
-		void set_constant_data(const Constant::WVP &constant)
+		void set_constant_data_wvp(const Constant::WVP &wvp)
 		{
 			HRESULT h_result;
 			void *Mapped;
 
-			h_result = constant_buffer->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(h_result) && "Constant Buffer Mappded");
-			CopyMemory(Mapped, &constant, sizeof(constant));
-			constant_buffer->Unmap(0, nullptr);
+			h_result = constant_buffer[0]->Map(0, nullptr, &Mapped);
+			assert(SUCCEEDED(h_result) && "Constant Buffer Mappded[WVP]");
+			CopyMemory(Mapped, &wvp, sizeof(wvp));
+			constant_buffer[0]->Unmap(0, nullptr);
+			Mapped = nullptr;
+		}
+		void set_constant_data_light(const Constant::Light &light)
+		{
+			HRESULT h_result;
+			void *Mapped;
+
+			h_result = constant_buffer[1]->Map(0, nullptr, &Mapped);
+			assert(SUCCEEDED(h_result) && "Constant Buffer Mappded[Light]");
+			CopyMemory(Mapped, &light, sizeof(light));
+			constant_buffer[1]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
 
