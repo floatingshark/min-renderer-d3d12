@@ -1,4 +1,5 @@
 #define _USE_MATH_DEFINES
+#define _CRT_SECURE_NO_WARNINGS
 #include <iostream>
 #include <cassert>
 #include <vector>
@@ -36,10 +37,12 @@ int main()
 	std::shared_ptr<arabesques::Control> control = std::make_shared<arabesques::Control>();
 
 	// Initialize Default Object
-	arabesques::Object object_1 = arabesques::Object(directx->get_device(), arabesques::Shape::Type::Torus);
-	//arabesques::Object object_2 = arabesques::Object(directx->get_device(), arabesques::Shape::Type::Plane);
-	std::vector<arabesques::Object> objects = {object_1/*, object_2*/};
-	directx->set_objects(objects);
+	arabesques::Object object_1 = arabesques::Object(directx->get_device(), "Default Torus", arabesques::Shape::Type::Torus);
+	arabesques::Object object_2 = arabesques::Object(directx->get_device(), "Floor Plane", arabesques::Shape::Type::Plane);
+	object_2.position = {0.f, 0.f, -0.5f};
+	object_2.scale = {3.f, 3.f, 1.f};
+	std::vector<arabesques::Object> scene_objects = {object_1, object_2};
+	directx->set_objects(scene_objects);
 	std::cout << "Prepared Mesh Data" << std::endl;
 
 	// Initialize UI
@@ -51,7 +54,7 @@ int main()
 	// Update Loop
 	while (window->update_flag())
 	{
-		ui->update();
+		ui->update(scene_objects);
 
 		control->init_via_imgui();
 		control->update();
@@ -60,10 +63,10 @@ int main()
 
 		constant->calculate_wvp();
 		constant->calculate_light();
-		for (arabesques::Object &obj : objects)
+		for (arabesques::Object &object : scene_objects)
 		{
-			obj.set_constant_buffer_1(constant->get_wvp());
-			obj.set_constant_buffer_2(constant->get_light());
+			object.set_constant_buffer_1(constant->get_wvp());
+			object.set_constant_buffer_2(constant->get_light());
 		}
 
 		window->update_window();

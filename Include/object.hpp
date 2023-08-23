@@ -4,6 +4,9 @@
 #include <vector>
 #include <wrl/client.h>
 #include <d3d12.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include "shape.hpp"
 
 namespace arabesques
@@ -11,20 +14,25 @@ namespace arabesques
 	class Object
 	{
 	public:
-		Object(ID3D12Device *device, Shape::Type type = Shape::Type::Torus)
+		Object(ID3D12Device *device, std::string name, Shape::Type type = Shape::Type::Torus)
+			: name(name)
 		{
 			init_vertex(type);
 			init_directx_buffer(device);
 		};
 
 	protected:
+		std::string name;
 		Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource> index_buffer;
 		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> constant_buffer;
-
-	public:
 		std::vector<Shape::Vertex> vertices;
 		std::vector<int> indices;
+
+	public:
+		glm::vec3 position = {0.f, 0.f, 0.f};
+		glm::vec3 rotation = {0.f, 0.f, 0.f};
+		glm::vec3 scale = {1.f, 1.f, 1.f};
 
 	public:
 		void init_vertex(Shape::Type type = Shape::Type::Torus)
@@ -121,10 +129,12 @@ namespace arabesques
 			command_list->DrawIndexedInstanced(indices.size(), 1, 0, 0, 0);
 		}
 
-		void set_constant_buffer_1(const Constant::WVP &wvp)
+		void set_constant_buffer_1(Constant::WVP wvp)
 		{
 			HRESULT hr;
 			void *Mapped;
+
+			calc_wvp(wvp);
 
 			hr = constant_buffer[0]->Map(0, nullptr, &Mapped);
 			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[WVP]");
@@ -142,6 +152,20 @@ namespace arabesques
 			CopyMemory(Mapped, &light, sizeof(light));
 			constant_buffer[1]->Unmap(0, nullptr);
 			Mapped = nullptr;
+		}
+
+		inline std::string get_name()
+		{
+			return name;
+		}
+	protected:
+		void calc_wvp(Constant::WVP &wvp)
+		{
+			wvp.world = glm::translate(wvp.world, position);
+			wvp.world = glm::rotate(wvp.world, rotation[0], {1.f, 0.f, 0.f});
+			wvp.world = glm::rotate(wvp.world, rotation[1], {0.f, 1.f, 0.f});
+			wvp.world = glm::rotate(wvp.world, rotation[2], {0.f, 0.f, 1.f});
+			wvp.world = glm::scale(wvp.world, scale);
 		}
 	};
 }

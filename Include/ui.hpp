@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cassert>
+#include <string>
 #include <vector>
 #include <d3d12.h>
 #include <GLFW/glfw3.h>
@@ -39,16 +40,14 @@ namespace arabesques
 								srv_heap->GetGPUDescriptorHandleForHeapStart());
 			std::cout << "Initialized ImGui DirectX12 Backend" << std::endl;
 		}
-		void update()
+		void update(std::vector<arabesques::Object> &objects)
 		{
 			ImGui_ImplDX12_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
-			if (bool use_demo = true)
-			{
-				ImGui::ShowDemoWindow(&use_demo);
-			}
-			window1();
+
+			window_1();
+			window_2(objects);
 		}
 		void render()
 		{
@@ -66,7 +65,7 @@ namespace arabesques
 		}
 
 	protected:
-		void window1()
+		void window_1()
 		{
 			ImGui::Begin("Control Panel");
 
@@ -84,16 +83,54 @@ namespace arabesques
 			ImGui::ColorEdit3("BG Color", Global::color);
 
 			ImGui::SeparatorText("View");
-			ImGui::DragFloat3("View Pos", Global::view_position, 0.1f, -10.0f, 10.0f);
-			ImGui::DragFloat3("LookAt", Global::lookat, 0.1f, -10.0f, 10.0f);
-			ImGui::DragFloat3("Up", Global::up, 0.01f, -1.0f, 1.0f);
+			ImGui::DragFloat3("View Pos", Global::view_position, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("LookAt", Global::lookat, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("Up", Global::up, 0.01f, -1.0f, 1.0f, "%.2f");
 
 			ImGui::SeparatorText("Projection");
-			ImGui::DragFloat("FOV", &Global::FOV, 1.f, 0.0f, 360.0f);
+			ImGui::DragFloat("FOV", &Global::FOV, 1.f, 0.0f, 360.0f, "%.2f");
 
-			
 			ImGui::SeparatorText("Light");
-			ImGui::DragFloat3("Light Pos", Global::light_position, 0.1f, -10.0f, 10.0f);
+			ImGui::DragFloat3("Light Pos", Global::light_position, 0.1f, -10.0f, 10.0f, "%.2f");
+
+			ImGui::End();
+		}
+		void window_2(std::vector<arabesques::Object> &objects)
+		{
+			ImGui::Begin("Object Panel");
+
+			// Objects Table
+			static int select_id = 0;
+			static ImGuiTableFlags object_table_flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti | ImGuiTableFlags_RowBg | ImGuiTableFlags_Borders | ImGuiTableFlags_NoBordersInBody | ImGuiTableFlags_ScrollX | ImGuiTableFlags_ScrollY | ImGuiTableFlags_SizingFixedFit;
+			if (ImGui::BeginTable("Object Table", 2, object_table_flags, ImVec2(0.0f, 10.f * 7.f), 0.0f))
+			{
+				ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
+				ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableSetupScrollFreeze(0, 1);
+				ImGui::TableHeadersRow();
+
+				for (int i = 0; i < objects.size(); i++)
+				{
+					char id_label[32];
+					arabesques::Object object = objects[i];
+					ImGui::TableNextRow();
+					ImGui::TableNextColumn();
+					sprintf(id_label, "%d", i);
+					if (ImGui::Selectable(id_label, false, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0.0f, 0.f)))
+					{
+						select_id = i;
+					}
+					ImGui::TableNextColumn();
+					ImGui::Text("%s", object.get_name().c_str());
+				}
+				ImGui::EndTable();
+			}
+
+			arabesques::Object &object = objects[select_id];
+			ImGui::SeparatorText("World");
+			ImGui::DragFloat3("Pos", (float *)&object.position, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("Rot", (float *)&object.rotation, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("Scl", (float *)&object.scale, 0.1f, -10.0f, 10.0f, "%.2f");
 
 			ImGui::End();
 		}
