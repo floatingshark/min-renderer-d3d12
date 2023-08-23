@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES
 #include <iostream>
 #include <cassert>
 #include <vector>
@@ -6,11 +7,13 @@
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_dx12.h>
 #include "window.hpp"
-#include "mesh.hpp"
 #include "constant.hpp"
-#include "directx.hpp"
-#include "ui.hpp"
 #include "control.hpp"
+#include "directx.hpp"
+#include "object.hpp"
+#include "shape.hpp"
+#include "ui.hpp"
+
 
 int main()
 {
@@ -26,25 +29,24 @@ int main()
 	directx->init_directx();
 	std::cout << "Prepared DirectX12" << std::endl;
 
-	// Initialize Default Object
-	std::vector<arabesques::Mesh::Vertex> vertices;
-	std::vector<int> indices;
-	//arabesques::Mesh::create_plane(vertices, indices);
-	arabesques::Mesh::create_torus(vertices, indices);
-	directx->set_vertex_data(vertices, indices);
-	std::cout << "Prepared Mesh Data" << std::endl;
-
 	// Initialize Constant
 	std::shared_ptr<arabesques::Constant> constant = std::make_shared<arabesques::Constant>();
 
 	// Initialize Control
 	std::shared_ptr<arabesques::Control> control = std::make_shared<arabesques::Control>();
 
+	// Initialize Default Object
+	arabesques::Object object_1 = arabesques::Object(directx->get_device(), arabesques::Shape::Type::Torus);
+	//arabesques::Object object_2 = arabesques::Object(directx->get_device(), arabesques::Shape::Type::Plane);
+	std::vector<arabesques::Object> objects = {object_1/*, object_2*/};
+	directx->set_objects(objects);
+	std::cout << "Prepared Mesh Data" << std::endl;
+
 	// Initialize UI
 	std::shared_ptr<arabesques::UI> ui = std::make_shared<arabesques::UI>();
 	ui->init_imgui();
 	ui->init_imgui_glfw(window->get_window());
-	ui->init_imgui_directX(directx->get_device().Get(), directx->get_num_frames(), directx->get_srv_heap().Get());
+	ui->init_imgui_directX(directx->get_device(), directx->get_num_frames(), directx->get_srv_heap());
 
 	// Update Loop
 	while (window->update_flag())
@@ -58,8 +60,11 @@ int main()
 
 		constant->calculate_wvp();
 		constant->calculate_light();
-		directx->set_constant_data_wvp(constant->get_wvp());
-		directx->set_constant_data_light(constant->get_light());
+		for (arabesques::Object &obj : objects)
+		{
+			obj.set_constant_buffer_1(constant->get_wvp());
+			obj.set_constant_buffer_2(constant->get_light());
+		}
 
 		window->update_window();
 

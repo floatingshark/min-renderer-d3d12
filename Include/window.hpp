@@ -13,7 +13,7 @@ namespace arabesques
 	protected:
 		const uint32_t WIDTH = 800;
 		const uint32_t HEIGHT = 600;
-		const std::string NAME = "arabesques";
+		const std::string NAME = "main";
 		GLFWwindow *window = nullptr;
 
 	public:

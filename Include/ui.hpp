@@ -1,15 +1,8 @@
 #include <iostream>
 #include <cassert>
 #include <vector>
-#include <dxgi.h>
 #include <d3d12.h>
-#include <d3d12shader.h>
-#include <dxgi1_4.h>
-#include <d3dcompiler.h>
-#include <DirectXMath.h>
-#include <d3d12sdklayers.h>
 #include <GLFW/glfw3.h>
-#include <GLFW/glfw3native.h>
 #include <imgui/imgui.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_dx12.h>

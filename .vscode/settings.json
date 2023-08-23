@@ -1,4 +1,4 @@
 {
 	"cmake.configureOnOpen": true,
-	"C_Cpp.default.compilerPath": "C:/llvm-mingw-20230614-ucrt-x86_64/bin/clang++.exe"
+	"C_Cpp.default.compilerPath": "C:/llvm-mingw-20230614-ucrt-x86_64/bin/clang++.exe",
 }

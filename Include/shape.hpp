@@ -1,13 +1,12 @@
 #pragma once
-#define _USE_MATH_DEFINES
 #include <iostream>
-#include <vector>
 #include <cassert>
 #include <math.h>
+#include <vector>
 
 namespace arabesques
 {
-	class Mesh
+	class Shape
 	{
 	public:
 		typedef struct Vertex
@@ -16,6 +15,14 @@ namespace arabesques
 			float Color[4];
 			float Normal[3];
 		} Vertex;
+
+		enum struct Type
+		{
+			Plane,
+			Cube,
+			Torus,
+			Max
+		};
 
 	public:
 		static void create_plane(std::vector<Vertex> &out_vertices, std::vector<int> &out_indices)
@@ -159,8 +166,8 @@ namespace arabesques
 		}
 		static void create_torus(std::vector<Vertex> &out_vertices, std::vector<int> &out_indices)
 		{
-			const int radial_div = 10;
-			const int tubular_div = 10;
+			const int radial_div = 50;
+			const int tubular_div = 50;
 			const float radius = 1.f;
 			const float thickness = 0.3f;
 

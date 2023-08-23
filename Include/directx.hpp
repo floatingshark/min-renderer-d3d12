@@ -3,10 +3,9 @@
 #define RTV_BUFFER_NUM (2)
 
 #include <iostream>
-#include <vector>
 #include <cassert>
+#include <vector>
 #include <wrl/client.h>
-#include <Windows.h>
 #include <d3d12.h>
 #include <d3d12shader.h>
 #include <dxgi1_4.h>
@@ -14,10 +13,10 @@
 #include <DirectXMath.h>
 #include <d3d12sdklayers.h>
 #include <imgui/imgui.h>
-#include <imgui/imgui_impl_dx12.h>
-#include "mesh.hpp"
 #include "constant.hpp"
 #include "global.hpp"
+#include "object.hpp"
+#include "shape.hpp"
 
 namespace arabesques
 {
@@ -32,6 +31,7 @@ namespace arabesques
 		UINT width = 800;
 		UINT height = 600;
 		UINT64 frame_index = 1;
+		std::vector<arabesques::Object> objects;
 		const UINT NUM_FRAMES_IN_FLIGHT = 2;
 		const bool USE_WARP_DEVICE = false;
 		UINT RTVIdx = 0;
@@ -56,15 +56,8 @@ namespace arabesques
 		Microsoft::WRL::ComPtr<ID3DBlob> root_signature_blob;
 		Microsoft::WRL::ComPtr<ID3DBlob> error_blob;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState> pipeline_state;
-		// For Shaders
 		Microsoft::WRL::ComPtr<ID3DBlob> vertex_shader;
 		Microsoft::WRL::ComPtr<ID3DBlob> pixel_shader;
-		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> constant_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource> index_buffer;
-		D3D12_VERTEX_BUFFER_VIEW vertex_view;
-		D3D12_INDEX_BUFFER_VIEW index_view;
-		UINT index_count;
 
 	public:
 		// Initialize Functions
@@ -78,11 +71,9 @@ namespace arabesques
 			init_render_target();
 			init_depth_buffer();
 			init_command_list();
-			init_buffer();
 			init_root_signature();
 			init_shader();
 			init_pipeline_state_object();
-			init_vertex_data();
 
 			// render();
 		}
@@ -278,42 +269,6 @@ namespace arabesques
 			h_result = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocator.Get(), nullptr, IID_PPV_ARGS(&command_list));
 			assert(SUCCEEDED(h_result) && "Create Command List");
 		}
-		void init_buffer()
-		{
-			HRESULT h_result;
-
-			D3D12_HEAP_PROPERTIES HeapPropeties;
-			D3D12_RESOURCE_DESC ResourceDesc;
-			ZeroMemory(&HeapPropeties, sizeof(HeapPropeties));
-			ZeroMemory(&ResourceDesc, sizeof(ResourceDesc));
-			HeapPropeties.Type = D3D12_HEAP_TYPE_UPLOAD;
-			HeapPropeties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
-			HeapPropeties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			HeapPropeties.CreationNodeMask = 0;
-			HeapPropeties.VisibleNodeMask = 0;
-
-			ResourceDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			ResourceDesc.Width = 256;
-			ResourceDesc.Height = 1;
-			ResourceDesc.DepthOrArraySize = 1;
-			ResourceDesc.MipLevels = 1;
-			ResourceDesc.Format = DXGI_FORMAT_UNKNOWN;
-			ResourceDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			ResourceDesc.SampleDesc.Count = 1;
-			ResourceDesc.SampleDesc.Quality = 0;
-
-			const int cbuff_size = 2;
-			constant_buffer.resize(cbuff_size);
-			for (int i = 0; i < 2; i++)
-			{
-				h_result = device->CreateCommittedResource(&HeapPropeties, D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&constant_buffer[i]));
-				assert(SUCCEEDED(h_result) && "Create Constant Buffer");
-			}
-			h_result = device->CreateCommittedResource(&HeapPropeties, D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&index_buffer));
-			assert(SUCCEEDED(h_result) && "Create Index Buffer");
-			h_result = device->CreateCommittedResource(&HeapPropeties, D3D12_HEAP_FLAG_NONE, &ResourceDesc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&vertex_buffer));
-			assert(SUCCEEDED(h_result) && "Create Vertex Buffer");
-		}
 		void init_shader()
 		{
 			HRESULT h_result;
@@ -451,46 +406,6 @@ namespace arabesques
 			h_result = device->CreateGraphicsPipelineState(&pipline_state_desc, IID_PPV_ARGS(&pipeline_state));
 			assert(SUCCEEDED(h_result) && "Create Graphics Pipeline State");
 		}
-		void init_vertex_data()
-		{
-			HRESULT h_result;
-			void *Mapped;
-
-			typedef struct Vertex3D
-			{
-				float Position[3];
-				float Color[4];
-			} Vertex3D;
-
-			// Write Vertex Datum to Vertex Buffer
-			Vertex3D Vertices[] = {
-				{{-1.f, 1.f, 0.f}, {1.f, 0.f, 0.f, 1.f}},
-				{{1.f, 1.f, 0.f}, {0.f, 1.f, 0.f, 1.f}},
-				{{1.f, -1.f, 0.f}, {0.f, 0.f, 1.f, 1.f}},
-				{{-1.f, -1.f, 0.f}, {1.f, 1.f, 1.f, 1.f}},
-			};
-			// Mapping
-			h_result = vertex_buffer->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(h_result) && "Fialed Vertex Buffer Mapping");
-			CopyMemory(Mapped, Vertices, sizeof(Vertices));
-			vertex_buffer->Unmap(0, nullptr);
-			Mapped = nullptr;
-			vertex_view.BufferLocation = vertex_buffer->GetGPUVirtualAddress();
-			vertex_view.StrideInBytes = sizeof(Vertex3D); // Size of 1 Vertex
-			vertex_view.SizeInBytes = sizeof(Vertices);	  // Size of All Vertices
-
-			// Write Index Datum to Index Buffer
-			int Index[] = {0, 1, 3, 1, 2, 3};
-			h_result = index_buffer->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(h_result) && "Failed Index Buffer Mapping");
-			CopyMemory(Mapped, Index, sizeof(Index));
-			index_buffer->Unmap(0, nullptr);
-			Mapped = nullptr;
-			index_view.BufferLocation = index_buffer->GetGPUVirtualAddress();
-			index_view.Format = DXGI_FORMAT_R32_UINT;
-			index_view.SizeInBytes = sizeof(Index);
-			index_count = 6;
-		}
 
 		// Update Functions
 		void wait_frame()
@@ -522,19 +437,15 @@ namespace arabesques
 
 			command_list->SetGraphicsRootSignature(root_signature.Get());
 			command_list->SetPipelineState(pipeline_state.Get());
-			command_list->SetGraphicsRootConstantBufferView(0, constant_buffer[0]->GetGPUVirtualAddress());
-			command_list->SetGraphicsRootConstantBufferView(1, constant_buffer[1]->GetGPUVirtualAddress());
 
 			command_list->RSSetViewports(1, &viewport);
 			command_list->RSSetScissorRects(1, &rect_scissor);
-
 			command_list->OMSetRenderTargets(1, &rtv_handle[RTVIdx], TRUE, &dsv_handle);
 
-			command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-			command_list->IASetVertexBuffers(0, 1, &vertex_view);
-			command_list->IASetIndexBuffer(&index_view);
-
-			command_list->DrawIndexedInstanced(index_count, 1, 0, 0, 0);
+			for (arabesques::Object &object : objects)
+			{
+				object.draw_directx(command_list.Get());
+			}
 
 			command_list->SetDescriptorHeaps(1, srv_heap.GetAddressOf());
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), command_list.Get());
@@ -568,55 +479,9 @@ namespace arabesques
 		}
 
 		// Setter Functions
-		void set_vertex_data(const std::vector<Mesh::Vertex> &vertices, const std::vector<int> &indices)
+		void set_objects(std::vector<arabesques::Object> in_objects)
 		{
-			HRESULT h_result;
-			void *Mapped;
-
-			// Write Vertex Datum to Vertex Buffer
-			h_result = vertex_buffer->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(h_result) && "Fialed Vertex Buffer Mapping");
-			const size_t size_vertices = sizeof(Mesh::Vertex) * vertices.size();
-			CopyMemory(Mapped, vertices.data(), size_vertices);
-			vertex_buffer->Unmap(0, nullptr);
-			Mapped = nullptr;
-			vertex_view.BufferLocation = vertex_buffer->GetGPUVirtualAddress();
-			vertex_view.StrideInBytes = sizeof(Mesh::Vertex); // Size of 1 Vertex
-			vertex_view.SizeInBytes = size_vertices;		  // Size of All Vertices
-
-			// Write Index Datum to Index Buffer
-			h_result = index_buffer->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(h_result) && "Failed Index Buffer Mapping");
-			const size_t size_indices = sizeof(int) * indices.size();
-			CopyMemory(Mapped, indices.data(), size_indices);
-			index_buffer->Unmap(0, nullptr);
-			Mapped = nullptr;
-			index_view.BufferLocation = index_buffer->GetGPUVirtualAddress();
-			index_view.Format = DXGI_FORMAT_R32_UINT;
-			index_view.SizeInBytes = size_indices;
-			index_count = indices.size();
-		}
-		void set_constant_data_wvp(const Constant::WVP &wvp)
-		{
-			HRESULT h_result;
-			void *Mapped;
-
-			h_result = constant_buffer[0]->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(h_result) && "Constant Buffer Mappded[WVP]");
-			CopyMemory(Mapped, &wvp, sizeof(wvp));
-			constant_buffer[0]->Unmap(0, nullptr);
-			Mapped = nullptr;
-		}
-		void set_constant_data_light(const Constant::Light &light)
-		{
-			HRESULT h_result;
-			void *Mapped;
-
-			h_result = constant_buffer[1]->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(h_result) && "Constant Buffer Mappded[Light]");
-			CopyMemory(Mapped, &light, sizeof(light));
-			constant_buffer[1]->Unmap(0, nullptr);
-			Mapped = nullptr;
+			objects = in_objects;
 		}
 
 		// Getter Functions
@@ -624,13 +489,13 @@ namespace arabesques
 		{
 			return NUM_FRAMES_IN_FLIGHT;
 		}
-		inline Microsoft::WRL::ComPtr<ID3D12Device> get_device()
+		inline ID3D12Device *get_device()
 		{
-			return device;
+			return device.Get();
 		}
-		inline Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> get_srv_heap()
+		inline ID3D12DescriptorHeap *get_srv_heap()
 		{
-			return srv_heap;
+			return srv_heap.Get();
 		}
 
 	protected:

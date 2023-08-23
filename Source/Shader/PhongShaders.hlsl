@@ -15,14 +15,12 @@ struct VS_INPUT{
 	float3 Normal   : NORMAL;
 };
 
-// (VS_OUTPUT)
 struct PS_INPUT{
     float4 Position : SV_POSITION;
     float4 Color    : COLOR;
 	float3 Normal	: NORMAL;
     float4 PositionW: POSITION;
 };
-
 
 PS_INPUT VSMain(VS_INPUT input){
     PS_INPUT output;
@@ -49,7 +47,7 @@ float4 PSMain(PS_INPUT input) : SV_TARGET{
     
     float4 ambient = float4(0.0, 0.1, 0.0, 1.0);
     float diffuse = clamp(dot(input.Normal, L), 0.0, 1.0) * 0.5;
-    float specular = pow(clamp(dot(input.Normal, H), 0.0, 1.0), 30.0);
+    float specular = pow(clamp(dot(input.Normal, H), 0.0, 1.0), 50.0);
 
     return float4(diffuse, diffuse, diffuse, 1.0) + float4(specular, specular, specular, 1.0) + ambient;
 
