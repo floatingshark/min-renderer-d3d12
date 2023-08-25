@@ -9,10 +9,14 @@ cbuffer light : register(b1){
     float4 ViewPos;
 };
 
+Texture2D<float4> Tex : register(t0);
+SamplerState Samp : register(s0);
+
 struct VS_INPUT{
     float3 Position : POSITION;
     float4 Color    : COLOR;
 	float3 Normal   : NORMAL;
+    float2 UV       : TEXCOORD;
 };
 
 struct PS_INPUT{

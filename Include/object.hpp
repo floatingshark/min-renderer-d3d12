@@ -28,8 +28,10 @@ namespace arabesques
 		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> constant_buffer;
 		std::vector<Shape::Vertex> vertices;
 		std::vector<int> indices;
+		std::vector<byte> texture;
 
 	public:
+		bool enabled = true;
 		glm::vec3 position = {0.f, 0.f, 0.f};
 		glm::vec3 rotation = {0.f, 0.f, 0.f};
 		glm::vec3 scale = {1.f, 1.f, 1.f};

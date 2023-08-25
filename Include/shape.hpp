@@ -14,6 +14,7 @@ namespace arabesques
 			float Position[3];
 			float Color[4];
 			float Normal[3];
+			float UV[2];
 		} Vertex;
 
 		enum struct Type
@@ -28,11 +29,11 @@ namespace arabesques
 		static void create_plane(std::vector<Vertex> &out_vertices, std::vector<int> &out_indices)
 		{
 			out_vertices = {
-				{{-1.f, 1.f, 0.f}, {1.f, 0.f, 0.f, 1.f}, {0.f, 0.f, 1.f}},
-				{{1.f, 1.f, 0.f}, {0.f, 1.f, 0.f, 1.f}, {0.f, 0.f, 1.f}},
-				{{1.f, -1.f, 0.f}, {0.f, 0.f, 1.f, 1.f}, {0.f, 0.f, 1.f}},
-				{{-1.f, -1.f, 0.f}, {1.f, 1.f, 1.f, 1.f}, {0.f, 0.f, 1.f}}};
-			out_indices = {0, 1, 3, 1, 2, 3};
+				{{-1.f, -1.f, 0.f}, {1.f, 0.f, 0.f, 1.f}, {0.f, 0.f, 1.f}, {0.f, 0.f}},
+				{{-1.f, 1.f, 0.f}, {0.f, 1.f, 0.f, 1.f}, {0.f, 0.f, 1.f}, {0.f, 1.f}},
+				{{1.f, 1.f, 0.f}, {0.f, 0.f, 1.f, 1.f}, {0.f, 0.f, 1.f}, {1.f, 1.f}},
+				{{1.f, -1.f, 0.f}, {1.f, 1.f, 1.f, 1.f}, {0.f, 0.f, 1.f}, {1.f, 0.f}}};
+			out_indices = {0, 1, 2, 0, 2, 3};
 		}
 		static void create_cube(std::vector<Vertex> &out_vertices, std::vector<int> &out_indices)
 		{

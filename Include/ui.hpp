@@ -32,12 +32,12 @@ namespace arabesques
 			ImGui_ImplGlfw_InitForOther(window, true);
 			std::cout << "Initialized ImGui GLFW Backend" << std::endl;
 		}
-		void init_imgui_directX(ID3D12Device *device, UINT num_frames, ID3D12DescriptorHeap *srv_heap)
+		void init_imgui_directX(ID3D12Device *device, UINT num_frames, ID3D12DescriptorHeap *heap_srv)
 		{
 			ImGui_ImplDX12_Init(device, num_frames,
-								DXGI_FORMAT_R8G8B8A8_UNORM, srv_heap,
-								srv_heap->GetCPUDescriptorHandleForHeapStart(),
-								srv_heap->GetGPUDescriptorHandleForHeapStart());
+								DXGI_FORMAT_R8G8B8A8_UNORM, heap_srv,
+								heap_srv->GetCPUDescriptorHandleForHeapStart(),
+								heap_srv->GetGPUDescriptorHandleForHeapStart());
 			std::cout << "Initialized ImGui DirectX12 Backend" << std::endl;
 		}
 		void update(std::vector<arabesques::Object> &objects)
@@ -76,22 +76,22 @@ namespace arabesques
 				Element_Vulkan,
 				Element_COUNT
 			};
-			static int elem = Element_DirectX;
-			const char *elems_names[Element_COUNT] = {"DirectX", "Vulkan"};
-			const char *elem_name = (elem >= 0 && elem < Element_COUNT) ? elems_names[elem] : "Unknown";
-			ImGui::SliderInt("Graphics", &elem, 0, Element_COUNT - 1, elem_name);
+			static int elem_graphics_int = Element_DirectX;
+			const char *elems_graphics_names[Element_COUNT] = {"DirectX", "Vulkan"};
+			const char *elem_graphics_name = (elem_graphics_int >= 0 && elem_graphics_int < Element_COUNT) ? elems_graphics_names[elem_graphics_int] : "Unknown";
+			ImGui::SliderInt("Graphics", &elem_graphics_int, 0, Element_COUNT - 1, elem_graphics_name);
 			ImGui::ColorEdit3("BG Color", Global::color);
 
 			ImGui::SeparatorText("View");
-			ImGui::DragFloat3("View Pos", Global::view_position, 0.1f, -10.0f, 10.0f, "%.2f");
-			ImGui::DragFloat3("LookAt", Global::lookat, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("CPos", Global::view_position, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("Look", Global::lookat, 0.1f, -10.0f, 10.0f, "%.2f");
 			ImGui::DragFloat3("Up", Global::up, 0.01f, -1.0f, 1.0f, "%.2f");
 
 			ImGui::SeparatorText("Projection");
 			ImGui::DragFloat("FOV", &Global::FOV, 1.f, 0.0f, 360.0f, "%.2f");
 
 			ImGui::SeparatorText("Light");
-			ImGui::DragFloat3("Light Pos", Global::light_position, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("LPos", Global::light_position, 0.1f, -10.0f, 10.0f, "%.2f");
 
 			ImGui::End();
 		}
@@ -127,6 +127,15 @@ namespace arabesques
 			}
 
 			arabesques::Object &object = objects[select_id];
+			enum Element_Object_Enabled
+			{
+				Disabled,
+				Enabled,
+				Element_COUNT
+			};
+			const char *elems_object_enable_names[Element_COUNT] = {"Disabled", "Enabled"};
+			const char *elem_object_enable_name = elems_object_enable_names[object.enabled];
+			ImGui::SliderInt("Disp", (int*)&object.enabled, 0, Element_COUNT - 1, elem_object_enable_name);
 			ImGui::SeparatorText("World");
 			ImGui::DragFloat3("Pos", (float *)&object.position, 0.1f, -10.0f, 10.0f, "%.2f");
 			ImGui::DragFloat3("Rot", (float *)&object.rotation, 0.1f, -10.0f, 10.0f, "%.2f");
