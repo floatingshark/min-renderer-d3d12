@@ -53,6 +53,7 @@ namespace arabesques
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtv_heap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> cbv_srv_heap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> dsb_heap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> imgui_heap;
 		Microsoft::WRL::ComPtr<ID3D12Resource> depth_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource> render_targets[RTV_BUFFER_NUM];
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator> command_allocator;
@@ -223,6 +224,14 @@ namespace arabesques
 			dsb_heap_desc.NodeMask = 0;
 			hr = device->CreateDescriptorHeap(&dsb_heap_desc, IID_PPV_ARGS(&dsb_heap));
 			assert(SUCCEEDED(hr) && "Create DSB Descriptor Heap");
+
+			D3D12_DESCRIPTOR_HEAP_DESC imgui_heap_desc;
+			imgui_heap_desc.NumDescriptors = 1;
+			imgui_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			imgui_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+			imgui_heap_desc.NodeMask = 0;
+			hr = device->CreateDescriptorHeap(&imgui_heap_desc, IID_PPV_ARGS(&imgui_heap));
+			assert(SUCCEEDED(hr) && "Create ImGui Descriptor Heap");
 		}
 		void init_render_target()
 		{
@@ -291,7 +300,6 @@ namespace arabesques
 			h_result = device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&command_allocator));
 			assert(SUCCEEDED(h_result) && "Create Command Allocator");
 
-			// コマンドアロケータとバインドしてコマンドリストを作成する
 			h_result = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocator.Get(), nullptr, IID_PPV_ARGS(&command_list));
 			assert(SUCCEEDED(h_result) && "Create Command List");
 		}
@@ -302,7 +310,6 @@ namespace arabesques
 			D3D12_ROOT_SIGNATURE_DESC RootSignatureDesc;
 
 			ZeroMemory(&RootParameters[0], sizeof(RootParameters[0]));
-			// ZeroMemory(&RootParameters[1], sizeof(RootParameters[1]));
 			ZeroMemory(&RootSignatureDesc, sizeof(RootSignatureDesc));
 
 			D3D12_DESCRIPTOR_RANGE ranges[1];
@@ -449,6 +456,7 @@ namespace arabesques
 
 			for (int obj_index = 0; obj_index < objects.size(); obj_index++)
 			{
+
 				D3D12_GPU_DESCRIPTOR_HANDLE cbv_gpu_handle = cbv_srv_heap->GetGPUDescriptorHandleForHeapStart();
 				UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 				cbv_gpu_handle.ptr += MAX_C_BUFFER_SIZE * obj_index * cbv_descriptor_size;
@@ -459,7 +467,7 @@ namespace arabesques
 				object.draw_directx(command_list.Get());
 			}
 
-			command_list->SetDescriptorHeaps(1, cbv_srv_heap.GetAddressOf());
+			command_list->SetDescriptorHeaps(1, imgui_heap.GetAddressOf());
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), command_list.Get());
 
 			SetResourceBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
@@ -524,6 +532,10 @@ namespace arabesques
 		inline ID3D12DescriptorHeap *get_cbv_srv_heap()
 		{
 			return cbv_srv_heap.Get();
+		}
+		inline ID3D12DescriptorHeap *get_imgui_heap()
+		{
+			return imgui_heap.Get();
 		}
 
 	protected:

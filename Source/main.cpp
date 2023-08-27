@@ -49,7 +49,7 @@ int main()
 	std::shared_ptr<arabesques::UI> ui = std::make_shared<arabesques::UI>();
 	ui->init_imgui();
 	ui->init_imgui_glfw(window->get_window());
-	ui->init_imgui_directX(directx->get_device(), directx->get_num_frames(), directx->get_cbv_srv_heap());
+	ui->init_imgui_directX(directx->get_device(), directx->get_num_frames(), directx->get_imgui_heap());
 
 	// Update Loop
 	while (window->update_flag())

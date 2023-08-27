@@ -127,6 +127,7 @@ namespace arabesques
 			index_view.Format = DXGI_FORMAT_R32_UINT;
 			index_view.SizeInBytes = size_indices;
 
+			
 			D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
 			UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			desc.BufferLocation = constant_buffer[0]->GetGPUVirtualAddress();
