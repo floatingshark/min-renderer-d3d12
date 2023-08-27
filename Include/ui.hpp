@@ -30,7 +30,6 @@ namespace arabesques
 		void init_imgui_glfw(GLFWwindow *window)
 		{
 			ImGui_ImplGlfw_InitForOther(window, true);
-			std::cout << "Initialized ImGui GLFW Backend" << std::endl;
 		}
 		void init_imgui_directX(ID3D12Device *device, UINT num_frames, ID3D12DescriptorHeap *heap_srv)
 		{
@@ -38,7 +37,6 @@ namespace arabesques
 								DXGI_FORMAT_R8G8B8A8_UNORM, heap_srv,
 								heap_srv->GetCPUDescriptorHandleForHeapStart(),
 								heap_srv->GetGPUDescriptorHandleForHeapStart());
-			std::cout << "Initialized ImGui DirectX12 Backend" << std::endl;
 		}
 		void update(std::vector<arabesques::Object> &objects)
 		{

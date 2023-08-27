@@ -1,6 +1,7 @@
 #pragma once
 #define _XM_NO_XMVECTOR_OVERLOADS_
 #define RTV_BUFFER_NUM (2)
+#define DIRECTX_LOG(log_msg) std::cout << "[DirectX]" << log_msg << std::endl;
 
 #include <iostream>
 #include <cassert>
@@ -69,15 +70,25 @@ namespace arabesques
 		{
 			init_viewport();
 			init_device();
+			DIRECTX_LOG("init_device");
 			init_command_queue();
+			DIRECTX_LOG("init_command_que");
 			init_swap_chain();
-			init_descriptor_heap();
+			DIRECTX_LOG("init_swap_chain");
+			init_descriptor_heaps();
+			DIRECTX_LOG("init_descriptor_heaps");
 			init_render_target();
+			DIRECTX_LOG("init_render_target");
 			init_depth_buffer();
+			DIRECTX_LOG("init_depth_buffer");
 			init_command_list();
+			DIRECTX_LOG("init_command_list");
 			init_root_signature();
-			init_shader();
+			DIRECTX_LOG("init_root_signature");
+			init_shaders();
+			DIRECTX_LOG("init_shaders");
 			init_pipeline_state_object();
+			DIRECTX_LOG("init_pipeline_states");
 
 			// render();
 		}
@@ -173,7 +184,7 @@ namespace arabesques
 			temp_swap_chain->Release();
 			temp_swap_chain = nullptr;
 		}
-		void init_shader()
+		void init_shaders()
 		{
 			HRESULT h_result;
 			UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
@@ -183,7 +194,7 @@ namespace arabesques
 			h_result = D3DCompileFromFile(L"./Source/Shader/PhongShaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixel_shader, nullptr);
 			assert(SUCCEEDED(h_result) && "Compile Pixel Shader");
 		}
-		void init_descriptor_heap()
+		void init_descriptor_heaps()
 		{
 			HRESULT hr;
 
@@ -436,15 +447,15 @@ namespace arabesques
 
 			command_list->SetDescriptorHeaps(1, cbv_srv_heap.GetAddressOf());
 
-			for (int i = 0; i < objects.size(); i++)
+			for (int obj_index = 0; obj_index < objects.size(); obj_index++)
 			{
 				D3D12_GPU_DESCRIPTOR_HANDLE cbv_gpu_handle = cbv_srv_heap->GetGPUDescriptorHandleForHeapStart();
 				UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-				cbv_gpu_handle.ptr += MAX_C_BUFFER_SIZE * i * cbv_descriptor_size;
+				cbv_gpu_handle.ptr += MAX_C_BUFFER_SIZE * obj_index * cbv_descriptor_size;
 				command_list->SetGraphicsRootDescriptorTable(0, cbv_gpu_handle);
 
-				arabesques::Object &object = objects[i];
-				object.pre_draw_directx(command_list.Get(), i);
+				arabesques::Object &object = objects[obj_index];
+				object.pre_draw_directx(command_list.Get(), obj_index);
 				object.draw_directx(command_list.Get());
 			}
 
