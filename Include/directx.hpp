@@ -26,14 +26,18 @@ namespace arabesques
 		DirectXA(HWND h) : hwnd(h) {}
 		~DirectXA() {}
 
+	private:
+		const UINT NUM_FRAMES_IN_FLIGHT = 2;
+		const bool USE_WARP_DEVICE = false;
+		const UINT MAX_OBJECT_SIZE = 10;
+		const UINT MAX_C_BUFFER_SIZE = 2;
+
 	protected:
 		HWND hwnd;
 		UINT width = 800;
 		UINT height = 600;
 		UINT64 frame_index = 1;
 		std::vector<arabesques::Object> objects;
-		const UINT NUM_FRAMES_IN_FLIGHT = 2;
-		const bool USE_WARP_DEVICE = false;
 		UINT RTVIdx = 0;
 		D3D12_VIEWPORT viewport;
 		D3D12_RECT rect_scissor;
@@ -46,7 +50,7 @@ namespace arabesques
 		D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle[RTV_BUFFER_NUM];
 		D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> rtv_heap;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> srv_heap;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> cbv_srv_heap;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> dsb_heap;
 		Microsoft::WRL::ComPtr<ID3D12Resource> depth_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource> render_targets[RTV_BUFFER_NUM];
@@ -169,9 +173,19 @@ namespace arabesques
 			temp_swap_chain->Release();
 			temp_swap_chain = nullptr;
 		}
-		void init_descriptor_heap()
+		void init_shader()
 		{
 			HRESULT h_result;
+			UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+			// Stop When Shader Compile Error
+			h_result = D3DCompileFromFile(L"./Source/Shader/PhongShaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertex_shader, nullptr);
+			assert(SUCCEEDED(h_result) && "Compile Vertex Shader");
+			h_result = D3DCompileFromFile(L"./Source/Shader/PhongShaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixel_shader, nullptr);
+			assert(SUCCEEDED(h_result) && "Compile Pixel Shader");
+		}
+		void init_descriptor_heap()
+		{
+			HRESULT hr;
 
 			D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc;
 			ZeroMemory(&rtv_heap_desc, sizeof(rtv_heap_desc));
@@ -179,15 +193,16 @@ namespace arabesques
 			rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 			rtv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 			rtv_heap_desc.NodeMask = 0;
-			h_result = device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&rtv_heap));
-			assert(SUCCEEDED(h_result) && "Create RTV Descriptor Heap");
+			hr = device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&rtv_heap));
+			assert(SUCCEEDED(hr) && "Create RTV Descriptor Heap");
 
-			D3D12_DESCRIPTOR_HEAP_DESC srv_heap_desc;
-			srv_heap_desc.NumDescriptors = 1;
-			srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-			srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-			srv_heap_desc.NodeMask = 0;
-			h_result = device->CreateDescriptorHeap(&srv_heap_desc, IID_PPV_ARGS(&srv_heap));
+			D3D12_DESCRIPTOR_HEAP_DESC cbv_srv_heap_desc;
+			cbv_srv_heap_desc.NumDescriptors = MAX_OBJECT_SIZE * MAX_C_BUFFER_SIZE;
+			cbv_srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+			cbv_srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+			cbv_srv_heap_desc.NodeMask = 0;
+			hr = device->CreateDescriptorHeap(&cbv_srv_heap_desc, IID_PPV_ARGS(&cbv_srv_heap));
+			assert(SUCCEEDED(hr) && "Create CBV SRV UAV Descriptor Heap");
 
 			D3D12_DESCRIPTOR_HEAP_DESC dsb_heap_desc;
 			ZeroMemory(&dsb_heap_desc, sizeof(dsb_heap_desc));
@@ -195,8 +210,8 @@ namespace arabesques
 			dsb_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 			dsb_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 			dsb_heap_desc.NodeMask = 0;
-			h_result = device->CreateDescriptorHeap(&dsb_heap_desc, IID_PPV_ARGS(&dsb_heap));
-			assert(SUCCEEDED(h_result) && "Create DSB Descriptor Heap");
+			hr = device->CreateDescriptorHeap(&dsb_heap_desc, IID_PPV_ARGS(&dsb_heap));
+			assert(SUCCEEDED(hr) && "Create DSB Descriptor Heap");
 		}
 		void init_render_target()
 		{
@@ -269,35 +284,27 @@ namespace arabesques
 			h_result = device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, command_allocator.Get(), nullptr, IID_PPV_ARGS(&command_list));
 			assert(SUCCEEDED(h_result) && "Create Command List");
 		}
-		void init_shader()
-		{
-			HRESULT h_result;
-			UINT compileFlags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-			// Stop When Shader Compile Error
-			h_result = D3DCompileFromFile(L"./Source/Shader/PhongShaders.hlsl", nullptr, nullptr, "VSMain", "vs_5_0", compileFlags, 0, &vertex_shader, nullptr);
-			assert(SUCCEEDED(h_result) && "Compile Vertex Shader");
-			h_result = D3DCompileFromFile(L"./Source/Shader/PhongShaders.hlsl", nullptr, nullptr, "PSMain", "ps_5_0", compileFlags, 0, &pixel_shader, nullptr);
-			assert(SUCCEEDED(h_result) && "Compile Pixel Shader");
-		}
 		void init_root_signature()
 		{
 			HRESULT h_result;
+			D3D12_ROOT_PARAMETER RootParameters[1];
 			D3D12_ROOT_SIGNATURE_DESC RootSignatureDesc;
-			D3D12_ROOT_PARAMETER RootParameters[2];
 
-			ZeroMemory(&RootSignatureDesc, sizeof(RootSignatureDesc));
 			ZeroMemory(&RootParameters[0], sizeof(RootParameters[0]));
-			ZeroMemory(&RootParameters[1], sizeof(RootParameters[1]));
+			// ZeroMemory(&RootParameters[1], sizeof(RootParameters[1]));
+			ZeroMemory(&RootSignatureDesc, sizeof(RootSignatureDesc));
 
-			RootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+			D3D12_DESCRIPTOR_RANGE ranges[1];
+			ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+			ranges[0].NumDescriptors = 2;
+			ranges[0].BaseShaderRegister = 0;
+			ranges[0].RegisterSpace = 0;
+			ranges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+
+			RootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+			RootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
+			RootParameters[0].DescriptorTable.pDescriptorRanges = &ranges[0];
 			RootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-			RootParameters[0].Descriptor.ShaderRegister = 0;
-			RootParameters[0].Descriptor.RegisterSpace = 0;
-
-			RootParameters[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
-			RootParameters[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-			RootParameters[1].Descriptor.ShaderRegister = 1;
-			RootParameters[1].Descriptor.RegisterSpace = 0;
 
 			RootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 			RootSignatureDesc.NumParameters = _countof(RootParameters);
@@ -409,22 +416,6 @@ namespace arabesques
 		}
 
 		// Update Functions
-		void wait_frame()
-		{
-			HRESULT h_result;
-
-			const UINT64 fence = frame_index;
-			h_result = command_queue->Signal(queue_fence.Get(), fence);
-			++frame_index;
-			assert(SUCCEEDED(h_result) && "Command Queue Signal");
-
-			if (queue_fence->GetCompletedValue() < fence)
-			{
-				h_result = queue_fence->SetEventOnCompletion(fence, handle_fence_event);
-				assert(SUCCEEDED(h_result) && "Set Event on Completion");
-				WaitForSingleObject(handle_fence_event, INFINITE);
-			}
-		}
 		void populate_command_list()
 		{
 			HRESULT h_result;
@@ -443,18 +434,43 @@ namespace arabesques
 			command_list->RSSetScissorRects(1, &rect_scissor);
 			command_list->OMSetRenderTargets(1, &rtv_handle[RTVIdx], TRUE, &dsv_handle);
 
-			for (arabesques::Object &object : objects)
+			command_list->SetDescriptorHeaps(1, cbv_srv_heap.GetAddressOf());
+
+			for (int i = 0; i < objects.size(); i++)
 			{
+				D3D12_GPU_DESCRIPTOR_HANDLE cbv_gpu_handle = cbv_srv_heap->GetGPUDescriptorHandleForHeapStart();
+				UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+				cbv_gpu_handle.ptr += MAX_C_BUFFER_SIZE * i * cbv_descriptor_size;
+				command_list->SetGraphicsRootDescriptorTable(0, cbv_gpu_handle);
+
+				arabesques::Object &object = objects[i];
+				object.pre_draw_directx(command_list.Get(), i);
 				object.draw_directx(command_list.Get());
 			}
 
-			command_list->SetDescriptorHeaps(1, srv_heap.GetAddressOf());
+			command_list->SetDescriptorHeaps(1, cbv_srv_heap.GetAddressOf());
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), command_list.Get());
 
 			SetResourceBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
 			h_result = command_list->Close();
 			assert(SUCCEEDED(h_result) && "Command List Closed");
+		}
+		void wait_frame()
+		{
+			HRESULT h_result;
+
+			const UINT64 fence = frame_index;
+			h_result = command_queue->Signal(queue_fence.Get(), fence);
+			++frame_index;
+			assert(SUCCEEDED(h_result) && "Command Queue Signal");
+
+			if (queue_fence->GetCompletedValue() < fence)
+			{
+				h_result = queue_fence->SetEventOnCompletion(fence, handle_fence_event);
+				assert(SUCCEEDED(h_result) && "Set Event on Completion");
+				WaitForSingleObject(handle_fence_event, INFINITE);
+			}
 		}
 		void render()
 		{
@@ -494,9 +510,9 @@ namespace arabesques
 		{
 			return device.Get();
 		}
-		inline ID3D12DescriptorHeap *get_srv_heap()
+		inline ID3D12DescriptorHeap *get_cbv_srv_heap()
 		{
-			return srv_heap.Get();
+			return cbv_srv_heap.Get();
 		}
 
 	protected:

@@ -49,11 +49,14 @@ float4 PSMain(PS_INPUT input) : SV_TARGET{
     float3 L = normalize(LightPos - input.PositionW.xyz);
     float3 H = normalize(V + L);
     
-    float4 ambient = float4(0.0, 0.1, 0.0, 1.0);
+    float4 ambient = float4(0.5, 0.5, 0.5, 1.0);
     float diffuse = clamp(dot(input.Normal, L), 0.0, 1.0) * 0.5;
     float specular = pow(clamp(dot(input.Normal, H), 0.0, 1.0), 50.0);
 
-    return float4(diffuse, diffuse, diffuse, 1.0) + float4(specular, specular, specular, 1.0) + ambient;
+    float4 surf_color = float4(diffuse, diffuse, diffuse, 1.0) + float4(specular, specular, specular, 1.0) + ambient;
+    surf_color *= input.Color;
+
+    return surf_color;
 
     //return float4(1.0, 1.0, 1.0, 1.0);
     //return float4(LightPos, 1.0);

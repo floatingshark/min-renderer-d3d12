@@ -37,8 +37,8 @@ int main()
 	std::shared_ptr<arabesques::Control> control = std::make_shared<arabesques::Control>();
 
 	// Initialize Default Object
-	arabesques::Object object_1 = arabesques::Object(directx->get_device(), "Default Torus", arabesques::Shape::Type::Torus);
-	arabesques::Object object_2 = arabesques::Object(directx->get_device(), "Floor Plane", arabesques::Shape::Type::Plane);
+	arabesques::Object object_1 = arabesques::Object(directx->get_device(), directx->get_cbv_srv_heap(), "Default Torus", arabesques::Shape::Type::Torus);
+	arabesques::Object object_2 = arabesques::Object(directx->get_device(), directx->get_cbv_srv_heap(), "Floor Plane", arabesques::Shape::Type::Plane);
 	object_2.position = {0.f, 0.f, -0.5f};
 	object_2.scale = {3.f, 3.f, 1.f};
 	std::vector<arabesques::Object> scene_objects = {object_1, object_2};
@@ -49,7 +49,7 @@ int main()
 	std::shared_ptr<arabesques::UI> ui = std::make_shared<arabesques::UI>();
 	ui->init_imgui();
 	ui->init_imgui_glfw(window->get_window());
-	ui->init_imgui_directX(directx->get_device(), directx->get_num_frames(), directx->get_srv_heap());
+	ui->init_imgui_directX(directx->get_device(), directx->get_num_frames(), directx->get_cbv_srv_heap());
 
 	// Update Loop
 	while (window->update_flag())
@@ -65,8 +65,8 @@ int main()
 		constant->calculate_light();
 		for (arabesques::Object &object : scene_objects)
 		{
-			object.set_constant_buffer_1(constant->get_wvp());
-			object.set_constant_buffer_2(constant->get_light());
+			object.map_constant_buffer_1(constant->get_wvp());
+			object.map_constant_buffer_2(constant->get_light());
 		}
 
 		window->update_window();

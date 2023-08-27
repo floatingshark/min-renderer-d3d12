@@ -14,11 +14,11 @@ namespace arabesques
 	class Object
 	{
 	public:
-		Object(ID3D12Device *device, std::string name, Shape::Type type = Shape::Type::Torus)
-			: name(name)
+		Object(ID3D12Device *device, ID3D12DescriptorHeap *cbv_heap, std::string name, Shape::Type type = Shape::Type::Torus)
+			: name(name), device(device), cbv_heap(cbv_heap)
 		{
 			init_vertex(type);
-			init_directx_buffer(device);
+			init_directx_buffer(device, cbv_heap);
 		};
 
 	protected:
@@ -29,6 +29,8 @@ namespace arabesques
 		std::vector<Shape::Vertex> vertices;
 		std::vector<int> indices;
 		std::vector<byte> texture;
+		ID3D12Device *device;
+		ID3D12DescriptorHeap *cbv_heap;
 
 	public:
 		bool enabled = true;
@@ -55,7 +57,7 @@ namespace arabesques
 				break;
 			}
 		}
-		void init_directx_buffer(ID3D12Device *device)
+		void init_directx_buffer(ID3D12Device *device, ID3D12DescriptorHeap *cbv_heap)
 		{
 			// Create Buffers
 			HRESULT hr;
@@ -65,8 +67,8 @@ namespace arabesques
 			heap_properties.Type = D3D12_HEAP_TYPE_UPLOAD;
 			heap_properties.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 			heap_properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
-			heap_properties.CreationNodeMask = 0;
-			heap_properties.VisibleNodeMask = 0;
+			heap_properties.CreationNodeMask = 1;
+			heap_properties.VisibleNodeMask = 1;
 
 			resource_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
 			resource_desc.Width = sizeof(Shape::Vertex) * vertices.size();
@@ -78,6 +80,13 @@ namespace arabesques
 			resource_desc.SampleDesc.Count = 1;
 			resource_desc.SampleDesc.Quality = 0;
 
+			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&vertex_buffer));
+			assert(SUCCEEDED(hr) && "Create Vertex Buffer");
+
+			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&index_buffer));
+			assert(SUCCEEDED(hr) && "Create Index Buffer");
+
+			resource_desc.Width = 256;
 			constexpr int cbuff_size = 2;
 			constant_buffer.resize(cbuff_size);
 			for (int i = 0; i < 2; i++)
@@ -85,10 +94,6 @@ namespace arabesques
 				hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&constant_buffer[i]));
 				assert(SUCCEEDED(hr) && "Create Constant Buffer");
 			}
-			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&vertex_buffer));
-			assert(SUCCEEDED(hr) && "Create Vertex Buffer");
-			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&index_buffer));
-			assert(SUCCEEDED(hr) && "Create Index Buffer");
 
 			// Init Buffers
 			void *Mapped;
@@ -107,7 +112,7 @@ namespace arabesques
 			index_buffer->Unmap(0, nullptr);
 			Mapped = nullptr;
 		};
-		void draw_directx(ID3D12GraphicsCommandList *command_list)
+		void pre_draw_directx(ID3D12GraphicsCommandList *command_list, int index)
 		{
 			UINT size_vertices = sizeof(Shape::Vertex) * vertices.size();
 			const size_t size_indices = sizeof(int) * indices.size();
@@ -122,16 +127,29 @@ namespace arabesques
 			index_view.Format = DXGI_FORMAT_R32_UINT;
 			index_view.SizeInBytes = size_indices;
 
-			command_list->SetGraphicsRootConstantBufferView(0, constant_buffer[0]->GetGPUVirtualAddress());
-			command_list->SetGraphicsRootConstantBufferView(1, constant_buffer[1]->GetGPUVirtualAddress());
+			D3D12_CONSTANT_BUFFER_VIEW_DESC desc = {};
+			UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			desc.BufferLocation = constant_buffer[0]->GetGPUVirtualAddress();
+			desc.SizeInBytes = 256;
+			D3D12_CPU_DESCRIPTOR_HANDLE cbv_handle_1 = cbv_heap->GetCPUDescriptorHandleForHeapStart();
+			cbv_handle_1.ptr += cbv_descriptor_size * 2 * index;
+			device->CreateConstantBufferView(&desc, cbv_handle_1);
+
+			desc.BufferLocation = constant_buffer[1]->GetGPUVirtualAddress();
+			D3D12_CPU_DESCRIPTOR_HANDLE cbv_handle_2 = cbv_heap->GetCPUDescriptorHandleForHeapStart();
+			cbv_handle_2.ptr += cbv_descriptor_size * (1 + 2 * index);
+			device->CreateConstantBufferView(&desc, cbv_handle_2);
 
 			command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 			command_list->IASetVertexBuffers(0, 1, &vertex_view);
 			command_list->IASetIndexBuffer(&index_view);
+		}
+		void draw_directx(ID3D12GraphicsCommandList *command_list)
+		{
 			command_list->DrawIndexedInstanced(indices.size(), 1, 0, 0, 0);
 		}
 
-		void set_constant_buffer_1(Constant::WVP wvp)
+		void map_constant_buffer_1(Constant::WVP wvp)
 		{
 			HRESULT hr;
 			void *Mapped;
@@ -144,7 +162,7 @@ namespace arabesques
 			constant_buffer[0]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
-		void set_constant_buffer_2(const Constant::Light &light)
+		void map_constant_buffer_2(const Constant::Light &light)
 		{
 			HRESULT hr;
 			void *Mapped;
@@ -160,6 +178,7 @@ namespace arabesques
 		{
 			return name;
 		}
+
 	protected:
 		void calc_wvp(Constant::WVP &wvp)
 		{
