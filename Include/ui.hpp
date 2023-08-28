@@ -81,15 +81,16 @@ namespace arabesques
 			ImGui::ColorEdit3("BG Color", Global::color);
 
 			ImGui::SeparatorText("View");
-			ImGui::DragFloat3("CPos", Global::view_position, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("VPos", Global::view_position, 0.1f, -10.0f, 10.0f, "%.2f");
 			ImGui::DragFloat3("Look", Global::lookat, 0.1f, -10.0f, 10.0f, "%.2f");
-			ImGui::DragFloat3("Up", Global::up, 0.01f, -1.0f, 1.0f, "%.2f");
-
+			ImGui::DragFloat3("VUp", Global::up, 0.01f, -1.0f, 1.0f, "%.2f");
+			/*
 			ImGui::SeparatorText("Projection");
 			ImGui::DragFloat("FOV", &Global::FOV, 1.f, 0.0f, 360.0f, "%.2f");
-
+			*/
 			ImGui::SeparatorText("Light");
 			ImGui::DragFloat3("LPos", Global::light_position, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::ColorEdit4("LAmb", Global::light_ambient);
 
 			ImGui::End();
 		}
@@ -119,25 +120,29 @@ namespace arabesques
 						select_id = i;
 					}
 					ImGui::TableNextColumn();
-					ImGui::Text("%s", object.get_name().c_str());
+					ImGui::Text("%s", object.name.c_str());
 				}
 				ImGui::EndTable();
 			}
 
 			arabesques::Object &object = objects[select_id];
-			enum Element_Object_Enabled
-			{
-				Disabled,
-				Enabled,
-				Element_COUNT
-			};
-			const char *elems_object_enable_names[Element_COUNT] = {"Disabled", "Enabled"};
-			const char *elem_object_enable_name = elems_object_enable_names[object.enabled];
-			ImGui::SliderInt("Disp", (int*)&object.enabled, 0, Element_COUNT - 1, elem_object_enable_name);
-			ImGui::SeparatorText("World");
+			ImGui::Text("> %s", object.name.c_str());
+
+			ImGui::SeparatorText("Transform");
 			ImGui::DragFloat3("Pos", (float *)&object.position, 0.1f, -10.0f, 10.0f, "%.2f");
 			ImGui::DragFloat3("Rot", (float *)&object.rotation, 0.1f, -10.0f, 10.0f, "%.2f");
 			ImGui::DragFloat3("Scl", (float *)&object.scale, 0.1f, -10.0f, 10.0f, "%.2f");
+
+			ImGui::SeparatorText("Material");
+			enum Element_GraphicsAPI
+			{
+				Element_VertexColor,
+				Element_Texture,
+				Element_COUNT
+			};
+			const char *elems_texture_names[Element_COUNT] = {"VertexColor", "Texture"};
+			const char *elem_texture_name = (object.use_texture >= 0 && object.use_texture < Element_COUNT) ? elems_texture_names[object.use_texture] : "Unknown";
+			ImGui::SliderInt("Surf", &object.use_texture, 0, Element_COUNT - 1, elem_texture_name);
 
 			ImGui::End();
 		}

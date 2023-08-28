@@ -19,16 +19,18 @@ namespace arabesques
 			glm::mat4x4 projection;
 		} WVP;
 
-		typedef struct Light
+		typedef struct Material
 		{
 			glm::vec4 light_pos;
 			glm::vec4 view_pos;
-		} Light;
+			glm::vec4 light_ambient;
+			int use_texture;
+		} Material;
 
 		Constant() { init(); }
 	protected:
 		WVP wvp;
-		Light light;
+		Material material;
 	public:
 		void init()
 		{
@@ -36,8 +38,8 @@ namespace arabesques
 			wvp.view = glm::lookAt(glm::vec3(0.f, 0.f, 0.5f), glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, -1.f, 0.f));
 			wvp.projection = glm::perspective(60.0f, 4.0f / 3.0f, 0.01f, 100.f);
 
-			light.light_pos = glm::vec4(0.f, 10.f, 0.f, 1.f);
-			light.view_pos =glm::vec4(0.f, 0.f, 0.5f, 1.f);
+			material.light_pos = glm::vec4(0.f, 10.f, 0.f, 1.f);
+			material.view_pos =glm::vec4(0.f, 0.f, 0.5f, 1.f);
 		}
 		void calculate_wvp()
 		{
@@ -56,16 +58,17 @@ namespace arabesques
 		}
 		void calculate_light()
 		{
-			light.light_pos = glm::vec4(Global::light_position[0], Global::light_position[1], Global::light_position[2], 1.f);
-			light.view_pos = glm::vec4(Global::view_position[0], Global::view_position[1], Global::view_position[2], 1.f);
+			material.light_pos = glm::vec4(Global::light_position[0], Global::light_position[1], Global::light_position[2], 1.f);
+			material.view_pos = glm::vec4(Global::view_position[0], Global::view_position[1], Global::view_position[2], 1.f);
+			material.light_ambient = glm::vec4(Global::light_ambient[0], Global::light_ambient[1], Global::light_ambient[2], Global::light_ambient[3]);
 		}
 		inline Constant::WVP& get_wvp()
 		{
 			return wvp;
 		}
-		inline Constant::Light& get_light()
+		inline Constant::Material& get_material()
 		{
-			return light;
+			return material;
 		}
 	};
 }

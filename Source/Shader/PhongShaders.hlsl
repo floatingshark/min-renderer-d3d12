@@ -7,6 +7,8 @@ cbuffer wvp : register(b0){
 cbuffer light : register(b1){
     float4 LightPos;
     float4 ViewPos;
+    float4 LightAmb;
+    bool UseTexture;
 };
 
 struct VS_INPUT{
@@ -51,14 +53,17 @@ float4 PSMain(PS_INPUT input) : SV_TARGET{
     float3 L = normalize(LightPos - input.PositionWorld.xyz);
     float3 H = normalize(V + L);
     
-    float4 ambient = float4(0.5, 0.5, 0.5, 1.0);
+    float4 ambient = LightAmb;
     float diffuse = clamp(dot(input.Normal, L), 0.0, 1.0) * 0.5;
     float specular = pow(clamp(dot(input.Normal, H), 0.0, 1.0), 50.0);
 
-    float4 surf_color = float4(diffuse, diffuse, diffuse, 1.0) + float4(specular, specular, specular, 1.0) + ambient;
-    surf_color *= input.Color;
+    float4 surf_color = float4(diffuse, diffuse, diffuse, 1.0) + float4(specular, specular, specular, 1.0);
+    //surf_color *= input.Color;
+    float4 tex_color = UseTexture ? Tex0.Sample(Samp0, input.UV) : input.Color;
+    surf_color *= tex_color + float4(0.99, 0.99, 0.99, 1.0);
+    surf_color += ambient;
 
-    //return surf_color;
+    return surf_color;
 
     //return float4(1.0, 1.0, 1.0, 1.0);
     //return float4(LightPos, 1.0);
@@ -66,5 +71,5 @@ float4 PSMain(PS_INPUT input) : SV_TARGET{
     //return float4(input.Normal, 1.0);
 
     //return float4(input.UV, 0.0, 1.0);
-    return Tex0.Sample(Samp0, input.UV);
+    //return Tex0.Sample(Samp0, input.UV);
 }

@@ -28,7 +28,6 @@ namespace arabesques
 		ID3D12DescriptorHeap *cbv_heap;
 
 	protected:
-		std::string name;
 		Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource> index_buffer;
 		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> constant_buffer;
@@ -39,7 +38,8 @@ namespace arabesques
 		UINT texture_size = 1024;
 
 	public:
-		bool enabled = true;
+		std::string name;
+		int use_texture = 0;
 		glm::vec3 position = {0.f, 0.f, 0.f};
 		glm::vec3 rotation = {0.f, 0.f, 0.f};
 		glm::vec3 scale = {1.f, 1.f, 1.f};
@@ -65,7 +65,7 @@ namespace arabesques
 		}
 		void init_texture()
 		{
-			texture = arabesques::Texture::create_checker(texture_size, 2);
+			texture = arabesques::Texture::create_checker(texture_size, 4);
 		}
 		void init_directx_buffer(ID3D12Device *device, ID3D12DescriptorHeap *cbv_heap)
 		{
@@ -202,21 +202,18 @@ namespace arabesques
 			constant_buffer[0]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
-		void map_constant_buffer_2(const Constant::Light &light)
+		void map_constant_buffer_2(Constant::Material &material)
 		{
 			HRESULT hr;
 			void *Mapped;
 
+			calc_material(material);
+
 			hr = constant_buffer[1]->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Light]");
-			CopyMemory(Mapped, &light, sizeof(light));
+			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Material]");
+			CopyMemory(Mapped, &material, sizeof(material));
 			constant_buffer[1]->Unmap(0, nullptr);
 			Mapped = nullptr;
-		}
-
-		inline std::string get_name()
-		{
-			return name;
 		}
 
 	protected:
@@ -227,6 +224,10 @@ namespace arabesques
 			wvp.world = glm::rotate(wvp.world, rotation[1], {0.f, 1.f, 0.f});
 			wvp.world = glm::rotate(wvp.world, rotation[2], {0.f, 0.f, 1.f});
 			wvp.world = glm::scale(wvp.world, scale);
+		}
+		void calc_material(Constant::Material &mat)
+		{
+			mat.use_texture = (int)use_texture;
 		}
 	};
 }

@@ -32,7 +32,8 @@ namespace arabesques
 				{{-1.f, -1.f, 0.f}, {1.f, 0.f, 0.f, 1.f}, {0.f, 0.f, 1.f}, {0.f, 0.f}},
 				{{-1.f, 1.f, 0.f}, {0.f, 1.f, 0.f, 1.f}, {0.f, 0.f, 1.f}, {0.f, 1.f}},
 				{{1.f, 1.f, 0.f}, {0.f, 0.f, 1.f, 1.f}, {0.f, 0.f, 1.f}, {1.f, 1.f}},
-				{{1.f, -1.f, 0.f}, {1.f, 1.f, 1.f, 1.f}, {0.f, 0.f, 1.f}, {1.f, 0.f}}};
+				{{1.f, -1.f, 0.f}, {1.f, 1.f, 1.f, 1.f}, {0.f, 0.f, 1.f}, {1.f, 0.f}},
+				{{1.f, -1.f, 0.f}, {1.f, 1.f, 1.f, 1.f}, {0.f, 0.f, 1.f}, {1.f, 0.f}}}; // something goes wrong
 			out_indices = {0, 1, 2, 0, 2, 3};
 		}
 		static void create_cube(std::vector<Vertex> &out_vertices, std::vector<int> &out_indices)
