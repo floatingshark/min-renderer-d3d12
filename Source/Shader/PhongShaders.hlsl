@@ -9,9 +9,6 @@ cbuffer light : register(b1){
     float4 ViewPos;
 };
 
-Texture2D<float4> Tex : register(t0);
-SamplerState Samp : register(s0);
-
 struct VS_INPUT{
     float3 Position : POSITION;
     float4 Color    : COLOR;
@@ -23,8 +20,12 @@ struct PS_INPUT{
     float4 Position : SV_POSITION;
     float4 Color    : COLOR;
 	float3 Normal	: NORMAL;
-    float4 PositionW: POSITION;
+    float2 UV       : TEXCOORD;
+    float4 PositionWorld: POSITION;
 };
+
+Texture2D<float4> Tex0 : register(t0);
+SamplerState Samp0 : register(s0);
 
 PS_INPUT VSMain(VS_INPUT input){
     PS_INPUT output;
@@ -37,7 +38,8 @@ PS_INPUT VSMain(VS_INPUT input){
 	output.Position = mul(wvp, pos4);
     output.Color = input.Color;
 	output.Normal = mul(World, input.Normal);
-    output.PositionW = mul(World, pos4);
+    output.UV = input.UV;
+    output.PositionWorld = mul(World, pos4);
 
     return output;
 }
@@ -45,8 +47,8 @@ PS_INPUT VSMain(VS_INPUT input){
 
 float4 PSMain(PS_INPUT input) : SV_TARGET{
 
-    float3 V = normalize(ViewPos - input.PositionW.xyz);
-    float3 L = normalize(LightPos - input.PositionW.xyz);
+    float3 V = normalize(ViewPos - input.PositionWorld.xyz);
+    float3 L = normalize(LightPos - input.PositionWorld.xyz);
     float3 H = normalize(V + L);
     
     float4 ambient = float4(0.5, 0.5, 0.5, 1.0);
@@ -56,10 +58,13 @@ float4 PSMain(PS_INPUT input) : SV_TARGET{
     float4 surf_color = float4(diffuse, diffuse, diffuse, 1.0) + float4(specular, specular, specular, 1.0) + ambient;
     surf_color *= input.Color;
 
-    return surf_color;
+    //return surf_color;
 
     //return float4(1.0, 1.0, 1.0, 1.0);
     //return float4(LightPos, 1.0);
     //return float4(ViewPos[0], 0.0, 0.0, 1.0);
     //return float4(input.Normal, 1.0);
+
+    //return float4(input.UV, 0.0, 1.0);
+    return Tex0.Sample(Samp0, input.UV);
 }

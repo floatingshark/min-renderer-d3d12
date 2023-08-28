@@ -198,19 +198,22 @@ namespace arabesques
 					vertex.Normal[1] = n_y / norm;
 					vertex.Normal[2] = z / norm;
 
+					vertex.UV[0] = abs(cos(v));
+					vertex.UV[1] = abs(sin(v));
+
 					out_vertices.push_back(vertex);
 
 					// Create Torus Indices
 					const int index = i * tubular_div + j;
 					std::vector<int> index_vector = {index, index + 1, index + tubular_div, index + 1, index + 1 + tubular_div, index + tubular_div};
-					if(j == tubular_div - 1)
+					if (j == tubular_div - 1)
 					{
 						index_vector = {index, i * tubular_div, index + tubular_div, i * tubular_div, (i + 1) * tubular_div, index + tubular_div};
 					}
-					if(i == radial_div - 1)
+					if (i == radial_div - 1)
 					{
 						index_vector = {index, index + 1, j, index + 1, j + 1, j};
-						if(j == tubular_div - 1)
+						if (j == tubular_div - 1)
 						{
 							index_vector = {index, i * tubular_div, j, i * tubular_div, 0, j};
 						}

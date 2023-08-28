@@ -31,7 +31,7 @@ namespace arabesques
 		const UINT NUM_FRAMES_IN_FLIGHT = 2;
 		const bool USE_WARP_DEVICE = false;
 		const UINT MAX_OBJECT_SIZE = 10;
-		const UINT MAX_C_BUFFER_SIZE = 2;
+		const UINT MAX_C_BUFFER_NUMBER = 3;
 
 	protected:
 		HWND hwnd;
@@ -209,7 +209,7 @@ namespace arabesques
 			assert(SUCCEEDED(hr) && "Create RTV Descriptor Heap");
 
 			D3D12_DESCRIPTOR_HEAP_DESC cbv_srv_heap_desc;
-			cbv_srv_heap_desc.NumDescriptors = MAX_OBJECT_SIZE * MAX_C_BUFFER_SIZE;
+			cbv_srv_heap_desc.NumDescriptors = MAX_OBJECT_SIZE * MAX_C_BUFFER_NUMBER;
 			cbv_srv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 			cbv_srv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 			cbv_srv_heap_desc.NodeMask = 0;
@@ -306,29 +306,53 @@ namespace arabesques
 		void init_root_signature()
 		{
 			HRESULT h_result;
-			D3D12_ROOT_PARAMETER RootParameters[1];
-			D3D12_ROOT_SIGNATURE_DESC RootSignatureDesc;
+			D3D12_ROOT_PARAMETER root_parameters[1];
+			D3D12_STATIC_SAMPLER_DESC sampler_desc = {};
+			D3D12_ROOT_SIGNATURE_DESC root_signature_desc = {};
 
-			ZeroMemory(&RootParameters[0], sizeof(RootParameters[0]));
-			ZeroMemory(&RootSignatureDesc, sizeof(RootSignatureDesc));
+			ZeroMemory(&root_parameters[0], sizeof(root_parameters[0]));
+			ZeroMemory(&sampler_desc, sizeof(sampler_desc));
+			ZeroMemory(&root_signature_desc, sizeof(root_signature_desc));
 
-			D3D12_DESCRIPTOR_RANGE ranges[1];
+			D3D12_DESCRIPTOR_RANGE ranges[2];
 			ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 			ranges[0].NumDescriptors = 2;
 			ranges[0].BaseShaderRegister = 0;
 			ranges[0].RegisterSpace = 0;
 			ranges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			RootParameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
-			RootParameters[0].DescriptorTable.NumDescriptorRanges = 1;
-			RootParameters[0].DescriptorTable.pDescriptorRanges = &ranges[0];
-			RootParameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+			ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+			ranges[1].NumDescriptors = 1;
+			ranges[1].BaseShaderRegister = 0;
+			ranges[1].RegisterSpace = 0;
+			ranges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
-			RootSignatureDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-			RootSignatureDesc.NumParameters = _countof(RootParameters);
-			RootSignatureDesc.pParameters = RootParameters;
+			root_parameters[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+			root_parameters[0].DescriptorTable.NumDescriptorRanges = 2;
+			root_parameters[0].DescriptorTable.pDescriptorRanges = &ranges[0];
+			root_parameters[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 
-			h_result = D3D12SerializeRootSignature(&RootSignatureDesc, D3D_ROOT_SIGNATURE_VERSION_1, &root_signature_blob, &error_blob);
+			sampler_desc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+			sampler_desc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			sampler_desc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			sampler_desc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+			sampler_desc.MipLODBias = 0.0f;
+			sampler_desc.MaxAnisotropy = 0;
+			sampler_desc.ComparisonFunc = D3D12_COMPARISON_FUNC_NEVER;
+			sampler_desc.BorderColor = D3D12_STATIC_BORDER_COLOR_TRANSPARENT_BLACK;
+			sampler_desc.MinLOD = 0;
+			sampler_desc.MaxLOD = D3D12_FLOAT32_MAX;
+			sampler_desc.ShaderRegister = 0;
+			sampler_desc.RegisterSpace = 0;
+			sampler_desc.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+			root_signature_desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+			root_signature_desc.NumParameters = _countof(root_parameters);
+			root_signature_desc.pParameters = root_parameters;
+			root_signature_desc.NumStaticSamplers = 1;
+			root_signature_desc.pStaticSamplers = &sampler_desc;
+
+			h_result = D3D12SerializeRootSignature(&root_signature_desc, D3D_ROOT_SIGNATURE_VERSION_1, &root_signature_blob, &error_blob);
 			assert(SUCCEEDED(h_result) && "Serialize Root Signature");
 
 			h_result = device->CreateRootSignature(0, root_signature_blob->GetBufferPointer(), root_signature_blob->GetBufferSize(), IID_PPV_ARGS(&root_signature));
@@ -343,7 +367,7 @@ namespace arabesques
 				{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 				{"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 				{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-				{"TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+				{"TEXCOORD", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 40, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 			};
 
 			D3D12_GRAPHICS_PIPELINE_STATE_DESC pipline_state_desc;
@@ -459,11 +483,11 @@ namespace arabesques
 
 				D3D12_GPU_DESCRIPTOR_HANDLE cbv_gpu_handle = cbv_srv_heap->GetGPUDescriptorHandleForHeapStart();
 				UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-				cbv_gpu_handle.ptr += MAX_C_BUFFER_SIZE * obj_index * cbv_descriptor_size;
+				cbv_gpu_handle.ptr += MAX_C_BUFFER_NUMBER * obj_index * cbv_descriptor_size;
 				command_list->SetGraphicsRootDescriptorTable(0, cbv_gpu_handle);
 
 				arabesques::Object &object = objects[obj_index];
-				object.pre_draw_directx(command_list.Get(), obj_index);
+				object.pre_draw_directx(command_list.Get(), obj_index, MAX_C_BUFFER_NUMBER);
 				object.draw_directx(command_list.Get());
 			}
 
