@@ -189,45 +189,45 @@ namespace arabesques
 			command_list->DrawIndexedInstanced(indices.size(), 1, 0, 0, 0);
 		}
 
-		void map_constant_buffer_1(Constant::WVP wvp)
+		void map_constant_buffer_1(Constant::Scene scene)
 		{
 			HRESULT hr;
 			void *Mapped;
 
-			calc_wvp(wvp);
+			calc_scene(scene);
 
 			hr = constant_buffer[0]->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[WVP]");
-			CopyMemory(Mapped, &wvp, sizeof(wvp));
+			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Scene]");
+			CopyMemory(Mapped, &scene, sizeof(scene));
 			constant_buffer[0]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
-		void map_constant_buffer_2(Constant::Material &material)
+		void map_constant_buffer_2(Constant::Local &object)
 		{
 			HRESULT hr;
 			void *Mapped;
 
-			calc_material(material);
+			calc_local(object);
 
 			hr = constant_buffer[1]->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Material]");
-			CopyMemory(Mapped, &material, sizeof(material));
+			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Object]");
+			CopyMemory(Mapped, &object, sizeof(object));
 			constant_buffer[1]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
 
 	protected:
-		void calc_wvp(Constant::WVP &wvp)
+		void calc_scene(Constant::Scene &scene)
 		{
-			wvp.world = glm::translate(wvp.world, position);
-			wvp.world = glm::rotate(wvp.world, rotation[0], {1.f, 0.f, 0.f});
-			wvp.world = glm::rotate(wvp.world, rotation[1], {0.f, 1.f, 0.f});
-			wvp.world = glm::rotate(wvp.world, rotation[2], {0.f, 0.f, 1.f});
-			wvp.world = glm::scale(wvp.world, scale);
 		}
-		void calc_material(Constant::Material &mat)
+		void calc_local(Constant::Local &local)
 		{
-			mat.use_texture = (int)use_texture;
+			local.use_texture = (int)use_texture;
+			local.world = glm::translate(local.world, position);
+			local.world = glm::rotate(local.world, rotation[0], {1.f, 0.f, 0.f});
+			local.world = glm::rotate(local.world, rotation[1], {0.f, 1.f, 0.f});
+			local.world = glm::rotate(local.world, rotation[2], {0.f, 0.f, 1.f});
+			local.world = glm::scale(local.world, scale);
 		}
 	};
 }

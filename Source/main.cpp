@@ -62,12 +62,12 @@ int main()
 
 		ui->render();
 
-		constant->calculate_wvp();
-		constant->calculate_light();
+		constant->calculate_scene();
+		constant->calculate_local();
 		for (arabesques::Object &object : scene_objects)
 		{
-			object.map_constant_buffer_1(constant->get_wvp());
-			object.map_constant_buffer_2(constant->get_material());
+			object.map_constant_buffer_1(constant->get_scene());
+			object.map_constant_buffer_2(constant->get_local());
 		}
 
 		window->update_window();

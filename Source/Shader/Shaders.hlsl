@@ -1,9 +1,11 @@
-cbuffer cbBuffer : register(b0){
-    float4x4 World;
+cbuffer scene : register(b0){
     float4x4 View;
     float4x4 Projection;
 };
 
+cbuffer local : register(b1){
+    float4x4 World;
+};
 struct VS_INPUT{
     float3 Position : POSITION;
     float4 Color    : COLOR;

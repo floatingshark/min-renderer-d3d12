@@ -1,15 +1,15 @@
-cbuffer wvp : register(b0){
-    float4x4 World;
+cbuffer scene : register(b0){
     float4x4 View;
     float4x4 Projection;
+    float4 ViewPos;
+    float4 LightPos;
+    float4 LightAmb;
+    float LightInt;
 };
 
-cbuffer light : register(b1){
-    float4 LightPos;
-    float4 ViewPos;
-    float4 LightAmb;
+cbuffer local : register(b1){
+    float4x4 World;
     bool UseTexture;
-    float LightInt;
 };
 
 struct VS_INPUT{
