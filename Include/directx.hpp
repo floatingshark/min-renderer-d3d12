@@ -19,7 +19,7 @@
 #include "object.hpp"
 #include "shape.hpp"
 
-namespace arabesques
+namespace albedos
 {
 	class DirectXA
 	{
@@ -38,7 +38,7 @@ namespace arabesques
 		UINT width = 800;
 		UINT height = 600;
 		UINT64 frame_index = 1;
-		std::vector<arabesques::Object> objects;
+		std::vector<albedos::Object> objects;
 		UINT RTVIdx = 0;
 		D3D12_VIEWPORT viewport;
 		D3D12_RECT rect_scissor;
@@ -486,7 +486,7 @@ namespace arabesques
 				cbv_gpu_handle.ptr += MAX_C_BUFFER_NUMBER * obj_index * cbv_descriptor_size;
 				command_list->SetGraphicsRootDescriptorTable(0, cbv_gpu_handle);
 
-				arabesques::Object &object = objects[obj_index];
+				albedos::Object &object = objects[obj_index];
 				object.pre_draw_directx(command_list.Get(), obj_index, MAX_C_BUFFER_NUMBER);
 				object.draw_directx(command_list.Get());
 			}
@@ -539,7 +539,7 @@ namespace arabesques
 		}
 
 		// Setter Functions
-		void set_objects(std::vector<arabesques::Object> in_objects)
+		void set_objects(std::vector<albedos::Object> in_objects)
 		{
 			objects = in_objects;
 		}

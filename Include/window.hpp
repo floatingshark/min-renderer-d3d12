@@ -6,14 +6,14 @@
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
-namespace arabesques
+namespace albedos
 {
 	class Window
 	{
 	protected:
 		const uint32_t WIDTH = 800;
 		const uint32_t HEIGHT = 600;
-		const std::string NAME = "main";
+		const std::string NAME = "albedo";
 		GLFWwindow *window = nullptr;
 
 	public:

@@ -10,7 +10,7 @@
 #include "constant.hpp"
 #include "global.hpp"
 
-namespace arabesques
+namespace albedos
 {
 	class UI
 	{
@@ -38,7 +38,7 @@ namespace arabesques
 								heap_srv->GetCPUDescriptorHandleForHeapStart(),
 								heap_srv->GetGPUDescriptorHandleForHeapStart());
 		}
-		void update(std::vector<arabesques::Object> &objects)
+		void update(std::vector<albedos::Object> &objects)
 		{
 			ImGui_ImplDX12_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
@@ -95,7 +95,7 @@ namespace arabesques
 
 			ImGui::End();
 		}
-		void window_2(std::vector<arabesques::Object> &objects)
+		void window_2(std::vector<albedos::Object> &objects)
 		{
 			ImGui::Begin("Object Panel");
 
@@ -112,7 +112,7 @@ namespace arabesques
 				for (int i = 0; i < objects.size(); i++)
 				{
 					char id_label[32];
-					arabesques::Object object = objects[i];
+					albedos::Object object = objects[i];
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn();
 					sprintf(id_label, "%d", i);
@@ -126,7 +126,7 @@ namespace arabesques
 				ImGui::EndTable();
 			}
 
-			arabesques::Object &object = objects[select_id];
+			albedos::Object &object = objects[select_id];
 			ImGui::Text("> %s", object.name.c_str());
 
 			ImGui::SeparatorText("Transform");

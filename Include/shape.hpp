@@ -4,7 +4,7 @@
 #include <math.h>
 #include <vector>
 
-namespace arabesques
+namespace albedos
 {
 	class Shape
 	{

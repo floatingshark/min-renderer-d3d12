@@ -10,7 +10,7 @@
 #include <glm/gtx/string_cast.hpp>
 #include "global.hpp"
 
-namespace arabesques
+namespace albedos
 {
 	class Control
 	{

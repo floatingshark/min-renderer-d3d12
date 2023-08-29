@@ -10,7 +10,7 @@
 #include "shape.hpp"
 #include "texture.hpp"
 
-namespace arabesques
+namespace albedos
 {
 	class Object
 	{
@@ -50,22 +50,22 @@ namespace arabesques
 			switch (type)
 			{
 			case Shape::Type::Plane:
-				arabesques::Shape::create_plane(vertices, indices);
+				albedos::Shape::create_plane(vertices, indices);
 				break;
 			case Shape::Type::Cube:
-				arabesques::Shape::create_cube(vertices, indices);
+				albedos::Shape::create_cube(vertices, indices);
 				break;
 			case Shape::Type::Torus:
-				arabesques::Shape::create_torus(vertices, indices);
+				albedos::Shape::create_torus(vertices, indices);
 				break;
 			default:
-				arabesques::Shape::create_torus(vertices, indices);
+				albedos::Shape::create_torus(vertices, indices);
 				break;
 			}
 		}
 		void init_texture()
 		{
-			texture = arabesques::Texture::create_checker(texture_size, 4);
+			texture = albedos::Texture::create_checker(texture_size, 4);
 		}
 		void init_directx_buffer(ID3D12Device *device, ID3D12DescriptorHeap *cbv_heap)
 		{
