@@ -26,6 +26,7 @@ namespace albedos
 		{
 			glm::mat4x4 world;
 			int use_texture;
+			float specular; // Specular Power
 		} Local;
 
 		Constant() { init(); }
@@ -44,6 +45,8 @@ namespace albedos
 			scene.view_pos = glm::vec4(0.f, 0.f, 0.5f, 1.f);
 
 			local.world = glm::mat4(1.f);
+			local.use_texture = (int)false;
+			local.specular = 1.f;
 		}
 		void calculate_scene()
 		{
@@ -60,10 +63,6 @@ namespace albedos
 			scene.view_pos = glm::vec4(Global::view_position[0], Global::view_position[1], Global::view_position[2], 1.f);
 			scene.light_ambient = glm::vec4(Global::light_ambient[0], Global::light_ambient[1], Global::light_ambient[2], Global::light_ambient[3]);
 			scene.light_intensity = Global::light_intensity;
-		}
-		void calculate_local()
-		{
-			local.world = glm::mat4(1.f);
 		}
 		inline Constant::Scene &get_scene()
 		{

@@ -39,10 +39,11 @@ namespace albedos
 
 	public:
 		std::string name;
-		int use_texture = 0;
 		glm::vec3 position = {0.f, 0.f, 0.f};
 		glm::vec3 rotation = {0.f, 0.f, 0.f};
 		glm::vec3 scale = {1.f, 1.f, 1.f};
+		int use_texture = 0;
+		float specular = 100.f;
 
 	public:
 		void init_vertex(Shape::Type type = Shape::Type::Torus)
@@ -202,7 +203,7 @@ namespace albedos
 			constant_buffer[0]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
-		void map_constant_buffer_2(Constant::Local &object)
+		void map_constant_buffer_2(Constant::Local object)
 		{
 			HRESULT hr;
 			void *Mapped;
@@ -222,12 +223,13 @@ namespace albedos
 		}
 		void calc_local(Constant::Local &local)
 		{
-			local.use_texture = (int)use_texture;
 			local.world = glm::translate(local.world, position);
 			local.world = glm::rotate(local.world, rotation[0], {1.f, 0.f, 0.f});
 			local.world = glm::rotate(local.world, rotation[1], {0.f, 1.f, 0.f});
 			local.world = glm::rotate(local.world, rotation[2], {0.f, 0.f, 1.f});
 			local.world = glm::scale(local.world, scale);
+			local.use_texture = (int)use_texture;
+			local.specular = specular;
 		}
 	};
 }

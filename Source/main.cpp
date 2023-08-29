@@ -63,7 +63,6 @@ int main()
 		ui->render();
 
 		constant->calculate_scene();
-		constant->calculate_local();
 		for (albedos::Object &object : scene_objects)
 		{
 			object.map_constant_buffer_1(constant->get_scene());

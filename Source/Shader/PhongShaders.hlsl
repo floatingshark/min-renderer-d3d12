@@ -10,6 +10,7 @@ cbuffer scene : register(b0){
 cbuffer local : register(b1){
     float4x4 World;
     bool UseTexture;
+    float Specular;
 };
 
 struct VS_INPUT{
@@ -56,7 +57,7 @@ float4 PSMain(PS_INPUT input) : SV_TARGET{
     
     float4 ambient = LightAmb;
     float diffuse = clamp(dot(input.Normal, L), 0.0, 1.0);
-    float specular = pow(clamp(dot(input.Normal, H), 0.0, 1.0), 50.0);
+    float specular = pow(clamp(dot(input.Normal, H), 0.0, 1.0), Specular);
 
     float4 surf_color = float4(diffuse, diffuse, diffuse, 1.0) + float4(specular, specular, specular, 1.0);
     float4 tex_color = UseTexture ? Tex0.Sample(Samp0, input.UV) : input.Color;

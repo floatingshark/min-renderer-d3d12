@@ -144,6 +144,7 @@ namespace albedos
 			const char *elems_texture_names[Element_COUNT] = {"VertexColor", "Texture"};
 			const char *elem_texture_name = (object.use_texture >= 0 && object.use_texture < Element_COUNT) ? elems_texture_names[object.use_texture] : "Unknown";
 			ImGui::SliderInt("Surf", &object.use_texture, 0, Element_COUNT - 1, elem_texture_name);
+			ImGui::SliderFloat("Spec", &object.specular, 0.01f, 1000.f, "%.2f");
 
 			ImGui::End();
 		}

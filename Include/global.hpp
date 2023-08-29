@@ -24,5 +24,5 @@ namespace albedos
 	float Global::projection_FOV = 60.f;
 	float Global::light_position[3] = {1.f, -2.f, 3.f};
 	float Global::light_ambient[4] = {0.1f, 0.1f, 0.1f, 1.f};
-	float Global::light_intensity = 0.5f;
+	float Global::light_intensity = 1.f;
 }
