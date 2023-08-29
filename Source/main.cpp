@@ -41,7 +41,7 @@ int main()
 	arabesques::Object object_2 = arabesques::Object(directx->get_device(), directx->get_cbv_srv_heap(), "Floor Plane", arabesques::Shape::Type::Plane);
 	object_2.position = {0.f, 0.f, -0.5f};
 	object_2.scale = {3.f, 3.f, 1.f};
-	object_2.use_texture = true;
+	//object_2.use_texture = true;
 	std::vector<arabesques::Object> scene_objects = {object_1, object_2};
 	directx->set_objects(scene_objects);
 	std::cout << "Prepared Mesh Data" << std::endl;

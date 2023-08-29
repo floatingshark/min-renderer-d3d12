@@ -77,13 +77,13 @@ namespace arabesques
 			static int elem_graphics_int = Element_DirectX;
 			const char *elems_graphics_names[Element_COUNT] = {"DirectX", "Vulkan"};
 			const char *elem_graphics_name = (elem_graphics_int >= 0 && elem_graphics_int < Element_COUNT) ? elems_graphics_names[elem_graphics_int] : "Unknown";
-			ImGui::SliderInt("Graphics", &elem_graphics_int, 0, Element_COUNT - 1, elem_graphics_name);
-			ImGui::ColorEdit3("BG Color", Global::color);
+			ImGui::SliderInt("API", &elem_graphics_int, 0, Element_COUNT - 1, elem_graphics_name);
+			ImGui::ColorEdit3("BG", Global::bg_color);
 
 			ImGui::SeparatorText("View");
 			ImGui::DragFloat3("VPos", Global::view_position, 0.1f, -10.0f, 10.0f, "%.2f");
-			ImGui::DragFloat3("Look", Global::lookat, 0.1f, -10.0f, 10.0f, "%.2f");
-			ImGui::DragFloat3("VUp", Global::up, 0.01f, -1.0f, 1.0f, "%.2f");
+			ImGui::DragFloat3("Look", Global::view_lookat, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("VUp", Global::view_up, 0.01f, -1.0f, 1.0f, "%.2f");
 			/*
 			ImGui::SeparatorText("Projection");
 			ImGui::DragFloat("FOV", &Global::FOV, 1.f, 0.0f, 360.0f, "%.2f");
@@ -91,6 +91,7 @@ namespace arabesques
 			ImGui::SeparatorText("Light");
 			ImGui::DragFloat3("LPos", Global::light_position, 0.1f, -10.0f, 10.0f, "%.2f");
 			ImGui::ColorEdit4("LAmb", Global::light_ambient);
+			ImGui::SliderFloat("LInt", &Global::light_intensity, 0.f, 5.f, "%.2f");
 
 			ImGui::End();
 		}

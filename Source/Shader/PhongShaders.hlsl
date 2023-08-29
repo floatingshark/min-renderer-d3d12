@@ -9,6 +9,7 @@ cbuffer light : register(b1){
     float4 ViewPos;
     float4 LightAmb;
     bool UseTexture;
+    float LightInt;
 };
 
 struct VS_INPUT{
@@ -54,13 +55,13 @@ float4 PSMain(PS_INPUT input) : SV_TARGET{
     float3 H = normalize(V + L);
     
     float4 ambient = LightAmb;
-    float diffuse = clamp(dot(input.Normal, L), 0.0, 1.0) * 0.5;
+    float diffuse = clamp(dot(input.Normal, L), 0.0, 1.0);
     float specular = pow(clamp(dot(input.Normal, H), 0.0, 1.0), 50.0);
 
     float4 surf_color = float4(diffuse, diffuse, diffuse, 1.0) + float4(specular, specular, specular, 1.0);
-    //surf_color *= input.Color;
     float4 tex_color = UseTexture ? Tex0.Sample(Samp0, input.UV) : input.Color;
-    surf_color *= tex_color + float4(0.99, 0.99, 0.99, 1.0);
+    surf_color *= LightInt;
+    surf_color *= tex_color;
     surf_color += ambient;
 
     return surf_color;

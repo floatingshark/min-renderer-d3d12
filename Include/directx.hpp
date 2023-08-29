@@ -462,7 +462,7 @@ namespace arabesques
 		{
 			HRESULT h_result;
 
-			FLOAT ClearColor[4] = {Global::color[0], Global::color[1], Global::color[2], Global::color[3]};
+			FLOAT ClearColor[4] = {Global::bg_color[0], Global::bg_color[1], Global::bg_color[2], Global::bg_color[3]};
 
 			SetResourceBarrier(D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 

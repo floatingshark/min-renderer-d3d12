@@ -25,6 +25,7 @@ namespace arabesques
 			glm::vec4 view_pos;
 			glm::vec4 light_ambient;
 			int use_texture;
+			float light_intensity;
 		} Material;
 
 		Constant() { init(); }
@@ -46,11 +47,11 @@ namespace arabesques
 			wvp.world = glm::mat4(1.f);
 			wvp.view = glm::lookAt(
 				glm::vec3(Global::view_position[0], Global::view_position[1], Global::view_position[2]),
-				glm::vec3(Global::lookat[0], Global::lookat[1], Global::lookat[2]),
-				glm::vec3(Global::up[0], Global::up[1], Global::up[2])
+				glm::vec3(Global::view_lookat[0], Global::view_lookat[1], Global::view_lookat[2]),
+				glm::vec3(Global::view_up[0], Global::view_up[1], Global::view_up[2])
 			);
 			wvp.projection = glm::perspective(
-				glm::radians(Global::FOV),
+				glm::radians(Global::projection_FOV),
 				4.f / 3.f,
 				0.01f,
 				100.f
@@ -61,6 +62,7 @@ namespace arabesques
 			material.light_pos = glm::vec4(Global::light_position[0], Global::light_position[1], Global::light_position[2], 1.f);
 			material.view_pos = glm::vec4(Global::view_position[0], Global::view_position[1], Global::view_position[2], 1.f);
 			material.light_ambient = glm::vec4(Global::light_ambient[0], Global::light_ambient[1], Global::light_ambient[2], Global::light_ambient[3]);
+			material.light_intensity = Global::light_intensity;
 		}
 		inline Constant::WVP& get_wvp()
 		{

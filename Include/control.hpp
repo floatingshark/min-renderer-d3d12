@@ -44,8 +44,8 @@ namespace arabesques
 
 			// Mouse Cursor Position Update
 			glm::vec3 pos = {Global::view_position[0], Global::view_position[1], Global::view_position[2]};
-			const glm::vec3 lookat = {Global::lookat[0], Global::lookat[1], Global::lookat[2]};
-			const glm::vec3 up = {Global::up[0], Global::up[1], Global::up[2]};
+			const glm::vec3 lookat = {Global::view_lookat[0], Global::view_lookat[1], Global::view_lookat[2]};
+			const glm::vec3 up = {Global::view_up[0], Global::view_up[1], Global::view_up[2]};
 			if (left_click_down)
 			{
 				glm::mat4 rotate_x = glm::rotate(glm::mat4(1.f), -move[0] / 360.f, up);
