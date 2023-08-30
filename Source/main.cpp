@@ -15,7 +15,6 @@
 #include "shape.hpp"
 #include "ui.hpp"
 
-
 int main()
 {
 	std::cout << "Begin Program" << std::endl;

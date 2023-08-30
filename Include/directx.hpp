@@ -11,7 +11,6 @@
 #include <d3d12shader.h>
 #include <dxgi1_4.h>
 #include <d3dcompiler.h>
-#include <DirectXMath.h>
 #include <d3d12sdklayers.h>
 #include <imgui/imgui.h>
 #include "constant.hpp"
@@ -109,20 +108,19 @@ namespace albedos
 		}
 		void init_device()
 		{
-			HRESULT h_result;
+			HRESULT hr;
 			UINT flags_DXGI_factory = 0;
-#if _DEBUG || 1
+
 			//  Enable Debug Layer
 			Microsoft::WRL::ComPtr<ID3D12Debug> dx_debug = nullptr;
-			h_result = D3D12GetDebugInterface(IID_PPV_ARGS(&dx_debug));
-			assert(SUCCEEDED(h_result) && "Failed to get D3D12 Debug Layer");
+			hr = D3D12GetDebugInterface(IID_PPV_ARGS(&dx_debug));
+			assert(SUCCEEDED(hr) && "Get D3D12 Debug Layer");
 			dx_debug->EnableDebugLayer();
 			flags_DXGI_factory |= DXGI_CREATE_FACTORY_DEBUG;
-#endif
 
 			// Create DXGI Factory
-			h_result = CreateDXGIFactory2(flags_DXGI_factory, IID_PPV_ARGS(&factory));
-			assert(SUCCEEDED(h_result) && "Failed to create DXGI Factory");
+			hr = CreateDXGIFactory2(flags_DXGI_factory, IID_PPV_ARGS(&factory));
+			assert(SUCCEEDED(hr) && "Failed to create DXGI Factory");
 
 			// Create D3D12 device
 			if (USE_WARP_DEVICE)
@@ -143,6 +141,21 @@ namespace albedos
 					D3D_FEATURE_LEVEL_11_0,
 					IID_PPV_ARGS(&device));
 			}
+
+			/* D3D12InfoQueue1 is supported on Windows 11
+			Microsoft::WRL::ComPtr<ID3D12InfoQueue1> info_queue;
+			if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&info_queue))))
+			{
+				D3D12MessageFunc message_func = [](D3D12_MESSAGE_CATEGORY Category,
+												   D3D12_MESSAGE_SEVERITY Severity,
+												   D3D12_MESSAGE_ID ID,
+												   LPCSTR pDescription,
+												   void *pContext)
+				{
+				};
+				D3D12_MESSAGE_CALLBACK_FLAGS message_flag = D3D12_MESSAGE_CALLBACK_FLAGS::D3D12_MESSAGE_CALLBACK_FLAG_NONE;
+				//info_queue->RegisterMessageCallback(message_func, message_flag, nullptr, nullptr);
+			}*/
 		}
 		void init_command_queue()
 		{
@@ -460,7 +473,7 @@ namespace albedos
 		// Update Functions
 		void populate_command_list()
 		{
-			HRESULT h_result;
+			HRESULT hr;
 
 			FLOAT ClearColor[4] = {Global::bg_color[0], Global::bg_color[1], Global::bg_color[2], Global::bg_color[3]};
 
@@ -496,8 +509,8 @@ namespace albedos
 
 			SetResourceBarrier(D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 
-			h_result = command_list->Close();
-			assert(SUCCEEDED(h_result) && "Command List Closed");
+			hr = command_list->Close();
+			assert(SUCCEEDED(hr) && "Command List Closed");
 		}
 		void wait_frame()
 		{
