@@ -1,7 +1,7 @@
 #pragma once
 #define _XM_NO_XMVECTOR_OVERLOADS_
 #define RTV_BUFFER_NUM (2)
-#define DIRECTX_LOG(log_msg) std::cout << "[DirectX]" << log_msg << std::endl;
+#define DIRECTX_LOG(log_msg) std::cout << "[D3D12]" << log_msg << std::endl;
 
 #include <iostream>
 #include <cassert>
@@ -70,25 +70,25 @@ namespace albedos
 		{
 			init_viewport();
 			init_device();
-			DIRECTX_LOG("init_device");
+			DIRECTX_LOG("Init Device");
 			init_command_queue();
-			DIRECTX_LOG("init_command_que");
+			DIRECTX_LOG("Init CommandQueue");
 			init_swap_chain();
-			DIRECTX_LOG("init_swap_chain");
+			DIRECTX_LOG("Init Wwapchain");
 			init_descriptor_heaps();
-			DIRECTX_LOG("init_descriptor_heaps");
+			DIRECTX_LOG("Init Descriptor Heaps");
 			init_render_target();
-			DIRECTX_LOG("init_render_target");
+			DIRECTX_LOG("Init Render Target");
 			init_depth_buffer();
-			DIRECTX_LOG("init_depth_buffer");
+			DIRECTX_LOG("Init Depth Buffer");
 			init_command_list();
-			DIRECTX_LOG("init_command_list");
+			DIRECTX_LOG("Init Command List");
 			init_root_signature();
-			DIRECTX_LOG("init_root_signature");
+			DIRECTX_LOG("Init Root Signature");
 			init_shaders();
-			DIRECTX_LOG("init_shaders");
+			DIRECTX_LOG("Init Shaders");
 			init_pipeline_state_object();
-			DIRECTX_LOG("init_pipeline_states");
+			DIRECTX_LOG("Init Pipeline States");
 
 			// render();
 		}
@@ -111,12 +111,14 @@ namespace albedos
 			HRESULT hr;
 			UINT flags_DXGI_factory = 0;
 
+#if _DEBUG
 			//  Enable Debug Layer
 			Microsoft::WRL::ComPtr<ID3D12Debug> dx_debug = nullptr;
 			hr = D3D12GetDebugInterface(IID_PPV_ARGS(&dx_debug));
 			assert(SUCCEEDED(hr) && "Get D3D12 Debug Layer");
 			dx_debug->EnableDebugLayer();
 			flags_DXGI_factory |= DXGI_CREATE_FACTORY_DEBUG;
+#endif
 
 			// Create DXGI Factory
 			hr = CreateDXGIFactory2(flags_DXGI_factory, IID_PPV_ARGS(&factory));
@@ -142,7 +144,8 @@ namespace albedos
 					IID_PPV_ARGS(&device));
 			}
 
-			/* D3D12InfoQueue1 is supported on Windows 11
+#if _DEBUG
+			// D3D12InfoQueue1 is supported on Windows 11
 			Microsoft::WRL::ComPtr<ID3D12InfoQueue1> info_queue;
 			if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&info_queue))))
 			{
@@ -152,10 +155,21 @@ namespace albedos
 												   LPCSTR pDescription,
 												   void *pContext)
 				{
+					if (ID == 560 || ID == 586)
+					{
+						return;
+					}
+					std::cout << "[" << ID << "]"
+							  << "[" << Category << "]"
+							  << "[" << Severity << "]"
+							  << pDescription << std::endl;
 				};
-				D3D12_MESSAGE_CALLBACK_FLAGS message_flag = D3D12_MESSAGE_CALLBACK_FLAGS::D3D12_MESSAGE_CALLBACK_FLAG_NONE;
-				//info_queue->RegisterMessageCallback(message_func, message_flag, nullptr, nullptr);
-			}*/
+				D3D12_MESSAGE_CALLBACK_FLAGS message_flag = D3D12_MESSAGE_CALLBACK_FLAGS::D3D12_MESSAGE_CALLBACK_IGNORE_FILTERS;
+				DWORD message_cookie;
+				hr = info_queue->RegisterMessageCallback(message_func, message_flag, nullptr, &message_cookie);
+				assert(SUCCEEDED(hr) && "Register Message Callback");
+			}
+#endif
 		}
 		void init_command_queue()
 		{

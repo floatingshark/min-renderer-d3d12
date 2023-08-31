@@ -1,5 +1,8 @@
 #define _USE_MATH_DEFINES
 #define _CRT_SECURE_NO_WARNINGS
+#define MAIN_LOG(log_msg) std::cout << "[MAIN]" << log_msg << std::endl;
+#undef _DEBUG
+
 #include <iostream>
 #include <cassert>
 #include <vector>
@@ -17,17 +20,17 @@
 
 int main()
 {
-	std::cout << "Begin Program" << std::endl;
+	MAIN_LOG("Begin Program");
 
 	// Create Window
 	std::shared_ptr<albedos::Window> window = std::make_shared<albedos::Window>();
 	window->init_window();
-	std::cout << "Prepared Window" << std::endl;
+	MAIN_LOG("Prepared Window");
 
 	// Create DirectX12 Context
 	std::shared_ptr<albedos::DirectXA> directx = std::make_shared<albedos::DirectXA>(window->get_hwnd());
 	directx->init_directx();
-	std::cout << "Prepared DirectX12" << std::endl;
+	MAIN_LOG("Prepared DirectX12");
 
 	// Initialize Constant
 	std::shared_ptr<albedos::Constant> constant = std::make_shared<albedos::Constant>();
@@ -43,7 +46,7 @@ int main()
 	//object_2.use_texture = true;
 	std::vector<albedos::Object> scene_objects = {object_1, object_2};
 	directx->set_objects(scene_objects);
-	std::cout << "Prepared Mesh Data" << std::endl;
+	MAIN_LOG("Prepared Mesh Data");
 
 	// Initialize UI
 	std::shared_ptr<albedos::UI> ui = std::make_shared<albedos::UI>();
@@ -52,6 +55,7 @@ int main()
 	ui->init_imgui_directX(directx->get_device(), directx->get_num_frames(), directx->get_imgui_heap());
 
 	// Update Loop
+	MAIN_LOG("Begin Update Loop");
 	while (window->update_flag())
 	{
 		ui->update(scene_objects);
@@ -77,7 +81,7 @@ int main()
 	ui->shutdown();
 	window->terminate();
 
-	std::cout << "End Program" << std::endl;
+	MAIN_LOG("End Program");
 
 	return 0;
 }
