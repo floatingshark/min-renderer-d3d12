@@ -16,4 +16,5 @@ DirectX12
 # Acknowledgement
 [GLFW](https://www.glfw.org/)  
 [glm](http://glm.g-truc.net/)  
-[Dear ImGui](https://github.com/ocornut/imgui)
+[Dear ImGui](https://github.com/ocornut/imgui)  
+[PIX](https://devblogs.microsoft.com/pix/download/)
