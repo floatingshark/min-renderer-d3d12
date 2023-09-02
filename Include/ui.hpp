@@ -18,25 +18,11 @@ namespace albedos
 		float color[4];
 
 	public:
-		void init_imgui()
+		void init_UI_directX(GLFWwindow *window, ID3D12Device *device, UINT num_frames, ID3D12DescriptorHeap *heap_srv)
 		{
-			IMGUI_CHECKVERSION();
-			ImGui::CreateContext();
-			ImGuiIO &io = ImGui::GetIO();
-			(void)io;
-			io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-			ImGui::StyleColorsLight();
-		}
-		void init_imgui_glfw(GLFWwindow *window)
-		{
-			ImGui_ImplGlfw_InitForOther(window, true);
-		}
-		void init_imgui_directX(ID3D12Device *device, UINT num_frames, ID3D12DescriptorHeap *heap_srv)
-		{
-			ImGui_ImplDX12_Init(device, num_frames,
-								DXGI_FORMAT_R8G8B8A8_UNORM, heap_srv,
-								heap_srv->GetCPUDescriptorHandleForHeapStart(),
-								heap_srv->GetGPUDescriptorHandleForHeapStart());
+			init_imgui();
+			init_imgui_glfw(window);
+			init_imgui_directX(device, num_frames, heap_srv);
 		}
 		void update(std::vector<albedos::Object> &objects)
 		{
@@ -63,6 +49,27 @@ namespace albedos
 		}
 
 	protected:
+		void init_imgui()
+		{
+			IMGUI_CHECKVERSION();
+			ImGui::CreateContext();
+			ImGuiIO &io = ImGui::GetIO();
+			(void)io;
+			io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+			ImGui::StyleColorsLight();
+		}
+		void init_imgui_glfw(GLFWwindow *window)
+		{
+			ImGui_ImplGlfw_InitForOther(window, true);
+		}
+		void init_imgui_directX(ID3D12Device *device, UINT num_frames, ID3D12DescriptorHeap *heap_srv)
+		{
+			ImGui_ImplDX12_Init(device, num_frames,
+								DXGI_FORMAT_R8G8B8A8_UNORM, heap_srv,
+								heap_srv->GetCPUDescriptorHandleForHeapStart(),
+								heap_srv->GetGPUDescriptorHandleForHeapStart());
+		}
+		
 		void window_1()
 		{
 			ImGui::Begin("Control Panel");

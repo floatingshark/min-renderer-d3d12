@@ -15,17 +15,17 @@ namespace albedos
 	class Object
 	{
 	public:
-		Object(ID3D12Device *device, ID3D12DescriptorHeap *cbv_heap, std::string name, Shape::Type type = Shape::Type::Torus)
-			: device(device), cbv_heap(cbv_heap), name(name)
+		Object(ID3D12Device *device, ID3D12DescriptorHeap *heap_cbv, std::string name, Shape::Type type = Shape::Type::Torus)
+			: device(device), descriptor_heap_cbv(heap_cbv), name(name)
 		{
 			init_vertex(type);
 			init_texture();
-			init_directx_buffer(device, cbv_heap);
+			init_directx_buffer(device, descriptor_heap_cbv);
 		};
 
 	private:
 		ID3D12Device *device;
-		ID3D12DescriptorHeap *cbv_heap;
+		ID3D12DescriptorHeap *descriptor_heap_cbv;
 
 	protected:
 		Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;
@@ -39,6 +39,8 @@ namespace albedos
 
 	public:
 		std::string name;
+		ID3D12Resource* shadow_buffer;
+
 		glm::vec3 position = {0.f, 0.f, 0.f};
 		glm::vec3 rotation = {0.f, 0.f, 0.f};
 		glm::vec3 scale = {1.f, 1.f, 1.f};
@@ -68,7 +70,7 @@ namespace albedos
 		{
 			texture = albedos::Texture::create_checker(texture_size, 4);
 		}
-		void init_directx_buffer(ID3D12Device *device, ID3D12DescriptorHeap *cbv_heap)
+		void init_directx_buffer(ID3D12Device *device, ID3D12DescriptorHeap *descriptor_heap_cbv)
 		{
 			// Create Buffers
 			HRESULT hr;
@@ -140,7 +142,8 @@ namespace albedos
 			hr = tex_buffer->WriteToSubresource(0, &box, texture.data(), 4 * texture_size, 4 * texture_size * texture_size);
 			assert(SUCCEEDED(hr) && "Write to Subrecource");
 		};
-		void pre_draw_directx(ID3D12GraphicsCommandList *command_list, int index, int num_buffers)
+
+		void update_draw_directx(ID3D12GraphicsCommandList *command_list, int index, int num_buffers)
 		{
 			UINT size_vertices = sizeof(Shape::Vertex) * vertices.size();
 			const size_t size_indices = sizeof(int) * indices.size();
@@ -157,19 +160,19 @@ namespace albedos
 			index_view.Format = DXGI_FORMAT_R32_UINT;
 			index_view.SizeInBytes = size_indices;
 
-			// Consntant Buffer View
+			// Consntant Buffer View 1
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbuff_desc = {};
-			D3D12_CPU_DESCRIPTOR_HANDLE cbv_handle = cbv_heap->GetCPUDescriptorHandleForHeapStart();
+			D3D12_CPU_DESCRIPTOR_HANDLE cbv_handle = descriptor_heap_cbv->GetCPUDescriptorHandleForHeapStart();
 			UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			cbuff_desc.BufferLocation = constant_buffer[0]->GetGPUVirtualAddress();
 			cbuff_desc.SizeInBytes = 256;
 			cbv_handle.ptr += index * num_buffers * cbv_descriptor_size;
 			device->CreateConstantBufferView(&cbuff_desc, cbv_handle);
+			// Consntant Buffer View 2
 			cbuff_desc.BufferLocation = constant_buffer[1]->GetGPUVirtualAddress();
 			cbv_handle.ptr += cbv_descriptor_size;
 			device->CreateConstantBufferView(&cbuff_desc, cbv_handle);
-
-			// Texture Bufferring
+			// Consntant Buffer View 3 (Texture)
 			D3D12_SHADER_RESOURCE_VIEW_DESC tex_desc{};
 			tex_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 			tex_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -180,17 +183,19 @@ namespace albedos
 			tex_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			cbv_handle.ptr += cbv_descriptor_size;
 			device->CreateShaderResourceView(tex_buffer.Get(), &tex_desc, cbv_handle);
+			// Constant buffer View 4 (Shadow Depth Texture)
+			tex_desc.Format = DXGI_FORMAT_R32_FLOAT;
+			cbv_handle.ptr += cbv_descriptor_size;
+			device->CreateShaderResourceView(shadow_buffer, &tex_desc, cbv_handle);
 
 			command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 			command_list->IASetVertexBuffers(0, 1, &vertex_view);
 			command_list->IASetIndexBuffer(&index_view);
-		}
-		void draw_directx(ID3D12GraphicsCommandList *command_list)
-		{
+
 			command_list->DrawIndexedInstanced(indices.size(), 1, 0, 0, 0);
 		}
 
-		void map_constant_buffer_1(Constant::Scene scene)
+		void update_constant_buffer_1(Constant::Scene scene)
 		{
 			HRESULT hr;
 			void *Mapped;
@@ -203,7 +208,7 @@ namespace albedos
 			constant_buffer[0]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
-		void map_constant_buffer_2(Constant::Local object)
+		void update_constant_buffer_2(Constant::Local object)
 		{
 			HRESULT hr;
 			void *Mapped;

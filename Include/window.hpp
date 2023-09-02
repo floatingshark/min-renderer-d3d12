@@ -10,6 +10,12 @@ namespace albedos
 {
 	class Window
 	{
+	public:
+		Window()
+		{
+			init_window();
+		}
+
 	protected:
 		const uint32_t WIDTH = 800;
 		const uint32_t HEIGHT = 600;

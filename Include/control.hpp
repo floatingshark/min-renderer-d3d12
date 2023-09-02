@@ -24,7 +24,7 @@ namespace albedos
 		bool wheel_click;
 
 	public:
-		void init_via_imgui()
+		void updage_imgui_contexts()
 		{
 			ImGuiIO &io = ImGui::GetIO();
 			capture_mouse = io.WantCaptureMouse;
