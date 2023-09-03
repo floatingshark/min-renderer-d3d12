@@ -109,7 +109,7 @@ namespace albedos {
 				ImGui::TableSetupScrollFreeze(0, 1);
 				ImGui::TableHeadersRow();
 
-				for (int i = 0; i < objects.size(); i++) {
+				for (int i = 0; i < static_cast<int>(objects.size()); i++) {
 					char			id_label[32];
 					albedos::Object object = objects[i];
 					ImGui::TableNextRow();

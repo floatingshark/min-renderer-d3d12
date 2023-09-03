@@ -186,7 +186,7 @@ namespace albedos {
 			HRESULT hr;
 			void*	Mapped;
 
-			calculate_scene(scene);
+			//calculate_scene(scene);
 
 			hr = constant_buffer[0]->Map(0, nullptr, &Mapped);
 			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Scene]");
@@ -207,7 +207,7 @@ namespace albedos {
 			constant_buffer[1]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
-		
+
 		void set_shadow_buffer(ID3D12Resource* in_buffer) { shadow_buffer = in_buffer; }
 		void set_vertex_data(Shape::Type in_type) {
 			vertex_data.clear();
@@ -232,11 +232,11 @@ namespace albedos {
 		void set_texture_data(Texture::Type in_type) {
 			texture_data.clear();
 			texture_type = in_type;
-
+			
 			HRESULT	  hr;
 			const int checker_num = 4;
-			byte	  color[4]	  = {(byte)(texture_color[0] * 255), (byte)(texture_color[1] * 255),
-									 (byte)(texture_color[2] * 255), (byte)(texture_color[3] * 255)};
+			byte	  color[4]	  = {(byte)(texture_color[0] * 255.f), (byte)(texture_color[1] * 255.f),
+									 (byte)(texture_color[2] * 255.f), (byte)(texture_color[3] * 255.f)};
 
 			switch (in_type) {
 			case Texture::Type::Monochrome:
@@ -256,7 +256,7 @@ namespace albedos {
 		}
 
 	protected:
-		void calculate_scene(Constant::Scene& scene) {}
+		//void calculate_scene(Constant::Scene& scene) {}
 		void calculate_local(Constant::Local& local) {
 			local.world			 = glm::translate(local.world, position);
 			local.world			 = glm::rotate(local.world, rotation[0], {1.f, 0.f, 0.f});

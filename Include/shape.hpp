@@ -139,13 +139,13 @@ namespace albedos {
 															{20, 22, 23}};
 
 			out_vertices.resize(24);
-			for (int i = 0; i < out_vertices.size(); i++) {
+			for (int i = 0; i < static_cast<int>(out_vertices.size()); i++) {
 				std::copy(positions[i].begin(), positions[i].end(), out_vertices[i].Position);
 				std::copy(colors[i].begin(), colors[i].end(), out_vertices[i].Color);
 				std::copy(normals[i].begin(), normals[i].end(), out_vertices[i].Normal);
 			}
 
-			for (int j = 0; j < index_vector.size(); j++) {
+			for (int j = 0; j < static_cast<int>(index_vector.size()); j++) {
 				out_indices.insert(out_indices.end(), index_vector[j].begin(), index_vector[j].end());
 			}
 		}

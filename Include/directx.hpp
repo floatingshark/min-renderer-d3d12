@@ -30,7 +30,7 @@ namespace albedos {
 	private:
 		const UINT	   NUM_FRAMES_IN_FLIGHT		 = 2;
 		const bool	   USE_WARP_DEVICE			 = false;
-		const UINT	   MAX_OBJECT_SIZE			 = 10;
+		const UINT	   MAX_OBJECT_SIZE			 = 5;
 		const UINT	   MAX_CRV_SRV_BUFFER_NUMBER = 4;
 		const wchar_t* SHADER_NAME				 = L"./Source/Shader/PhongShaders.hlsl";
 
@@ -167,6 +167,7 @@ namespace albedos {
 					if (ID == 560 || ID == 586) {
 						return;
 					}
+					(void)pContext;
 					std::cout << "[" << ID << "]"
 							  << "[" << Category << "]"
 							  << "[" << Severity << "]" << pDescription << std::endl;
@@ -461,7 +462,7 @@ namespace albedos {
 			pipline_state_desc.RasterizerState.MultisampleEnable	 = FALSE;
 
 			// Blend State Settings
-			for (int i = 0; i < _countof(pipline_state_desc.BlendState.RenderTarget); ++i) {
+			for (int i = 0; i < static_cast<int>(_countof(pipline_state_desc.BlendState.RenderTarget)); ++i) {
 				pipline_state_desc.BlendState.RenderTarget[i].BlendEnable			= FALSE;
 				pipline_state_desc.BlendState.RenderTarget[i].SrcBlend				= D3D12_BLEND_ONE;
 				pipline_state_desc.BlendState.RenderTarget[i].DestBlend				= D3D12_BLEND_ZERO;
@@ -662,7 +663,7 @@ namespace albedos {
 			command_list->RSSetScissorRects(1, &rect_scissor_shadow);
 			command_list->OMSetRenderTargets(0, nullptr, TRUE, &handle_shadow);
 
-			for (int object_index = 0; object_index < objects.size(); object_index++) {
+			for (int object_index = 0; object_index < static_cast<int>(objects.size()); object_index++) {
 				set_constant_root_table_by_object(object_index);
 				albedos::Object& object = objects[object_index];
 				object.update_draw_directx(command_list.Get(), object_index, MAX_CRV_SRV_BUFFER_NUMBER);
@@ -692,7 +693,7 @@ namespace albedos {
 			command_list->RSSetScissorRects(1, &rect_scissor);
 			command_list->OMSetRenderTargets(1, &handle_rtv[RTVIdx], TRUE, &handle_dsv);
 
-			for (int object_index = 0; object_index < objects.size(); object_index++) {
+			for (int object_index = 0; object_index < static_cast<int>(objects.size()); object_index++) {
 				set_constant_root_table_by_object(object_index);
 				albedos::Object& object = objects[object_index];
 				object.update_draw_directx(command_list.Get(), object_index, MAX_CRV_SRV_BUFFER_NUMBER);
