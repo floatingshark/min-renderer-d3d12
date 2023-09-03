@@ -27,9 +27,9 @@ namespace albedos {
 		}
 		inline GLFWwindow* get_window() { return window; }
 		inline HWND		   get_hwnd() { return glfwGetWin32Window(this->window); }
-		inline bool		   update_flag() { return !glfwWindowShouldClose(window); }
-		void			   update_window() { glfwPollEvents(); }
-		void			   terminate() {
+		inline bool		   is_update() { return !glfwWindowShouldClose(window); }
+		void			   update() { glfwPollEvents(); }
+		void			   shutdown() {
 			  glfwDestroyWindow(window);
 			  glfwTerminate();
 		}

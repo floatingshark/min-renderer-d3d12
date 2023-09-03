@@ -29,34 +29,42 @@ int main() {
 	MAIN_LOG("Prepared DirectX12");
 
 	std::shared_ptr<albedos::Constant> constant = std::make_shared<albedos::Constant>();
-	std::shared_ptr<albedos::Control>  control	= std::make_shared<albedos::Control>();
-	std::shared_ptr<albedos::Scene>	   scene =
-		std::make_shared<albedos::Scene>(directx->get_device(), directx->get_cbv_srv_heap());
-	std::shared_ptr<albedos::UI> ui = std::make_shared<albedos::UI>();
+	MAIN_LOG("Prepared Constant Datum");
 
-	directx->init_render_objects(scene->objects);
-	MAIN_LOG("Prepared Scene Data");
+	std::shared_ptr<albedos::Control> control = std::make_shared<albedos::Control>();
+	MAIN_LOG("Prepared User Control");
+
+	std::shared_ptr<albedos::Scene> scene =
+		std::make_shared<albedos::Scene>(directx->get_device(), directx->get_cbv_srv_heap());
+	MAIN_LOG("Prepared Scene Datum");
+
+	std::shared_ptr<albedos::UI> ui = std::make_shared<albedos::UI>();
+	MAIN_LOG("Prepared UI");
+
+	directx->set_render_objects(scene->objects);
+	MAIN_LOG("Initialized Object to Renderer");
 
 	ui->init_UI_directX(window->get_window(), directx->get_device(), directx->get_num_frames(),
 						directx->get_imgui_heap());
-	MAIN_LOG("Prepared ImGui DirectX");
+	MAIN_LOG("Initialized ImGui for DirectX");
 
-	MAIN_LOG("Begin Update Loop");
-	while (window->update_flag()) {
+	while (window->is_update()) {
 		ui->update(scene->objects);
-		window->update_window();
+		window->update();
 		control->update();
-		constant->update_scene();
+		constant->update();
+
 		for (albedos::Object& object : scene->objects) {
 			object.update_constant_buffer_1(constant->get_scene());
 			object.update_constant_buffer_2(constant->get_local());
 		}
+
 		ui->render();
 		directx->render();
 	}
 
 	ui->shutdown();
-	window->terminate();
+	window->shutdown();
 
 	MAIN_LOG("End Program");
 

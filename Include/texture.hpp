@@ -23,7 +23,7 @@ namespace albedos {
 
 			return ret;
 		}
-		static std::vector<byte> create_checker(int tex_size, byte color[4], int checker_num) {
+		static std::vector<byte> create_checker_board(int tex_size, byte color[4], int checker_num) {
 			std::vector<byte>		ret;
 			const std::vector<byte> white	   = {255, 255, 255, 255};
 			const std::vector<byte> black	   = {color[0], color[1], color[2], 255};

@@ -42,7 +42,7 @@ namespace albedos {
 		glm::vec3	  scale			   = {1.f, 1.f, 1.f};
 		Texture::Type texture_type	   = Texture::Type::Monochrome;
 		float		  texture_color[4] = {1.f, 1.f, 1.f, 1.f};
-		float		  specular		   = 100.f;
+		float		  specular_power   = 100.f;
 
 	public:
 		void init_vertex() { albedos::Shape::create_plane(vertex_data, index_data); }
@@ -130,6 +130,7 @@ namespace albedos {
 			assert(SUCCEEDED(hr) && "Write to Subrecource");
 		};
 
+		// Create Resource Views and Draw
 		void update_draw_directx(ID3D12GraphicsCommandList* command_list, int index, int num_buffers) {
 			UINT					 size_vertices = sizeof(Shape::Vertex) * vertex_data.size();
 			const size_t			 size_indices  = sizeof(int) * index_data.size();
@@ -180,6 +181,7 @@ namespace albedos {
 
 			command_list->DrawIndexedInstanced(index_data.size(), 1, 0, 0, 0);
 		}
+		// Constant Buffer 1 supports Scene Mutual Variables
 		void update_constant_buffer_1(Constant::Scene scene) {
 			HRESULT hr;
 			void*	Mapped;
@@ -192,6 +194,7 @@ namespace albedos {
 			constant_buffer[0]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
+		// Constant Buffer 2 supports Object Unique Variables
 		void update_constant_buffer_2(Constant::Local object) {
 			HRESULT hr;
 			void*	Mapped;
@@ -204,6 +207,7 @@ namespace albedos {
 			constant_buffer[1]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
+		
 		void set_shadow_buffer(ID3D12Resource* in_buffer) { shadow_buffer = in_buffer; }
 		void set_vertex_data(Shape::Type in_type) {
 			vertex_data.clear();
@@ -239,7 +243,7 @@ namespace albedos {
 				texture_data = Texture::create_monochromatic(TEXTURE_SIZE, color);
 				break;
 			case Texture::Type::CheckBoard:
-				texture_data = Texture::create_checker(TEXTURE_SIZE, color, checker_num);
+				texture_data = Texture::create_checker_board(TEXTURE_SIZE, color, checker_num);
 				break;
 			default:
 				break;
@@ -254,12 +258,12 @@ namespace albedos {
 	protected:
 		void calculate_scene(Constant::Scene& scene) {}
 		void calculate_local(Constant::Local& local) {
-			local.world	   = glm::translate(local.world, position);
-			local.world	   = glm::rotate(local.world, rotation[0], {1.f, 0.f, 0.f});
-			local.world	   = glm::rotate(local.world, rotation[1], {0.f, 1.f, 0.f});
-			local.world	   = glm::rotate(local.world, rotation[2], {0.f, 0.f, 1.f});
-			local.world	   = glm::scale(local.world, scale);
-			local.specular = specular;
+			local.world			 = glm::translate(local.world, position);
+			local.world			 = glm::rotate(local.world, rotation[0], {1.f, 0.f, 0.f});
+			local.world			 = glm::rotate(local.world, rotation[1], {0.f, 1.f, 0.f});
+			local.world			 = glm::rotate(local.world, rotation[2], {0.f, 0.f, 1.f});
+			local.world			 = glm::scale(local.world, scale);
+			local.specular_power = specular_power;
 		}
 	};
 } // namespace albedos

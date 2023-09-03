@@ -15,6 +15,8 @@
 #include <d3dcompiler.h>
 #include <dxgi1_4.h>
 #include <imgui/imgui.h>
+#include <imgui/imgui_impl_dx12.h>
+#include <imgui/imgui_impl_glfw.h>
 #include <iostream>
 #include <vector>
 #include <wrl/client.h>
@@ -76,32 +78,32 @@ namespace albedos {
 		// Initialize Functions
 		void init_directx() {
 			init_viewport();
-
+			DIRECTX_LOG("Initialized Viewport");
 			init_device();
-			DIRECTX_LOG("Init Device");
+			DIRECTX_LOG("Initialized Device");
 			init_command_queue();
-			DIRECTX_LOG("Init CommandQueue");
+			DIRECTX_LOG("Initialized CommandQueue");
 			init_swap_chain();
-			DIRECTX_LOG("Init Wwapchain");
+			DIRECTX_LOG("Initialized Swapchain");
 			init_descriptor_heaps_render();
-			DIRECTX_LOG("Init Descriptor Heaps");
+			DIRECTX_LOG("Initialized Descriptor Heaps");
 			init_render_target_view();
-			DIRECTX_LOG("Init Render Target");
+			DIRECTX_LOG("Initialized Render Target");
 			init_depth_stencil_view();
-			DIRECTX_LOG("Init Depth Buffer");
+			DIRECTX_LOG("Initialized Depth Buffer");
 			init_command_list();
-			DIRECTX_LOG("Init Command List");
+			DIRECTX_LOG("Initialized Command List");
 			init_root_signature();
-			DIRECTX_LOG("Init Root Signature");
+			DIRECTX_LOG("Initialized Root Signature");
 			init_pipeline_state_render();
-			DIRECTX_LOG("Init Pipeline States[Render]");
+			DIRECTX_LOG("Initialized Pipeline States[Render]");
 
 			init_descriptor_heaps_shadow();
-			DIRECTX_LOG("Init Descriptor Heaps[Shadow]");
+			DIRECTX_LOG("Initialized Descriptor Heaps[Shadow]");
 			init_shadow_target_view();
-			DIRECTX_LOG("Init Shadow Target View");
+			DIRECTX_LOG("Initialized Shadow Target View");
 			init_pipeline_state_shadow();
-			DIRECTX_LOG("Init Pipeline States[Depth]");
+			DIRECTX_LOG("Initialized Pipeline States[Depth]");
 		}
 		void init_viewport() {
 			viewport.TopLeftX = 0.f;
@@ -629,7 +631,6 @@ namespace albedos {
 		}
 
 	public:
-		// Update Functions
 		void render() {
 			HRESULT hr;
 
@@ -721,8 +722,7 @@ namespace albedos {
 			}
 		}
 
-		// Setter Functions
-		void init_render_objects(std::vector<albedos::Object>& in_objects) {
+		void set_render_objects(std::vector<albedos::Object>& in_objects) {
 			objects = in_objects;
 
 			for (albedos::Object& obj : objects) {
@@ -730,7 +730,6 @@ namespace albedos {
 			}
 		}
 
-		// Getter Functions
 		inline UINT64				 get_num_frames() { return NUM_FRAMES_IN_FLIGHT; }
 		inline ID3D12Device*		 get_device() { return device.Get(); }
 		inline ID3D12DescriptorHeap* get_cbv_srv_heap() { return descriptor_heap_cbv_srv.Get(); }

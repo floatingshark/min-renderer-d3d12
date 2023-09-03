@@ -23,7 +23,7 @@ namespace albedos {
 
 		typedef struct Local {
 			glm::mat4x4 world;
-			float		specular; // Specular Power
+			float		specular_power;
 		} Local;
 
 		Constant() { init(); }
@@ -45,9 +45,9 @@ namespace albedos {
 			scene.light_intensity		  = 1.f;
 
 			local.world	   = glm::mat4(1.f);
-			local.specular = 1.f;
+			local.specular_power = 1.f;
 		}
-		void update_scene() {
+		void update() {
 			scene.view =
 				glm::lookAt(glm::vec3(Global::view_position[0], Global::view_position[1], Global::view_position[2]),
 							glm::vec3(Global::view_lookat[0], Global::view_lookat[1], Global::view_lookat[2]),

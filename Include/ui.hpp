@@ -55,6 +55,10 @@ namespace albedos {
 								heap_srv->GetGPUDescriptorHandleForHeapStart());
 		}
 
+		/**
+		 * Window 1 is Located Left
+		 * Manipulate Scene Variables
+		 */
 		void window_1() {
 			ImGui::Begin("Control Panel");
 
@@ -83,6 +87,10 @@ namespace albedos {
 
 			ImGui::End();
 		}
+		/**
+		 * Window 2 is Located Right
+		 * Manipulate each Object Variable
+		 */
 		void window_2(std::vector<albedos::Object>& objects) {
 			ImGui::Begin("Object Panel");
 
@@ -123,7 +131,7 @@ namespace albedos {
 			ImGui::DragFloat3("Scl", (float*)&object.scale, 0.1f, -10.0f, 10.0f, "%.2f");
 
 			ImGui::SeparatorText("Material");
-			const char* tex_items[]		 = {"Monochrome", "Checker Board"};
+			const char* tex_items[]		 = {"Mono", "Checker Board"};
 			int			tex_item_current = (int)object.texture_type;
 			if (ImGui::Combo("Tex", &tex_item_current, tex_items, IM_ARRAYSIZE(tex_items))) {
 				const Texture::Type texture_type = (Texture::Type)tex_item_current;
@@ -134,7 +142,7 @@ namespace albedos {
 				object.set_texture_data(texture_type);
 			}
 
-			ImGui::SliderFloat("Spec", &object.specular, 0.1f, 1000.f, "%.2f");
+			ImGui::SliderFloat("Spec", &object.specular_power, 0.1f, 1000.f, "%.2f");
 
 			ImGui::End();
 		}

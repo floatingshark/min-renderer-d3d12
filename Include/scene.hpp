@@ -15,6 +15,10 @@ namespace albedos {
 		ID3D12DescriptorHeap*		 heap;
 		std::vector<albedos::Object> objects;
 
+		/** 
+		 * Scene 1
+		 * 1 Torus and 1 Plane
+		 */
 		void create_scene_1() {
 			albedos::Object object_1 = albedos::Object(device, heap);
 			albedos::Object object_2 = albedos::Object(device, heap);
