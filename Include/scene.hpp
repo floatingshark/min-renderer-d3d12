@@ -1,38 +1,30 @@
 #pragma once
-#include <iostream>
-#include <vector>
-#include <d3d12.h>
 #include "object.hpp"
 #include "shape.hpp"
 #include "texture.hpp"
+#include <d3d12.h>
+#include <iostream>
+#include <vector>
 
-namespace albedos
-{
-	class Scene
-	{
+namespace albedos {
+	class Scene {
 	public:
-		Scene(ID3D12Device *device, ID3D12DescriptorHeap *heap)
-			: device(device),
-			  heap(heap)
-		{
-			create_scene_1();
-		};
+		Scene(ID3D12Device* device, ID3D12DescriptorHeap* heap) : device(device), heap(heap) { create_scene_1(); };
 
-		ID3D12Device *device;
-		ID3D12DescriptorHeap *heap;
+		ID3D12Device*				 device;
+		ID3D12DescriptorHeap*		 heap;
 		std::vector<albedos::Object> objects;
 
-		void create_scene_1()
-		{
+		void create_scene_1() {
 			albedos::Object object_1 = albedos::Object(device, heap);
 			albedos::Object object_2 = albedos::Object(device, heap);
 
-			object_1.name = "Torus";
+			object_1.name	  = "Torus";
 			object_1.position = {0.f, 0.f, 1.0f};
 			object_1.set_vertex_data(albedos::Shape::Type::Torus);
 
-			object_2.name = "Plane";
-			object_2.scale = {3.f, 3.f, 1.f};
+			object_2.name			  = "Plane";
+			object_2.scale			  = {3.f, 3.f, 1.f};
 			object_2.texture_color[0] = 0.7f;
 			object_2.texture_color[1] = 0.7f;
 			object_2.texture_color[2] = 0.7f;
@@ -41,4 +33,4 @@ namespace albedos
 			objects = {object_1, object_2};
 		}
 	};
-}
+} // namespace albedos
