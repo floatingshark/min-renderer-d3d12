@@ -5,6 +5,7 @@ cbuffer scene : register(b0){
     float4      LightPosition;
     float4      LightAmbient;
     float4x4    LightViewMatrix;
+    float4x4    LightProjectionMatrix;
     float       LightIntensity;
 };
 
@@ -13,6 +14,11 @@ cbuffer local : register(b1){
     bool        UseTexture;
     float       Specular;
 };
+
+Texture2D<float4> Texture0      : register(t0);
+Texture2D<float4> ShadowMap     : register(t1);
+SamplerState Sampler0           : register(s0);
+SamplerState Sampler1           : register(s1);
 
 struct VS_INPUT{
     float3 Position : POSITION;
@@ -27,13 +33,8 @@ struct PS_INPUT{
 	float3 Normal	        : NORMAL;
     float2 UV               : TEXCOORD;
     float4 PositionWorld    : POSITION;
-    float4 PositionShadow	: POSITION_SM;
+    float4 ShadowCoord	: POSITION_SM;
 };
-
-Texture2D<float4> Tex0      : register(t0);
-Texture2D<float4> ShadowMap : register(t1);
-SamplerState Samp0          : register(s0);
-SamplerState Samp1          : register(s1);
 
 PS_INPUT VSMain(VS_INPUT input){
     PS_INPUT output;
@@ -47,14 +48,14 @@ PS_INPUT VSMain(VS_INPUT input){
     output.UV = input.UV;
     output.PositionWorld = mul(WorldMatrix, pos4);
 
-    float4 pos_shadow = mul(WorldMatrix, input.Position);
+    float4 pos_shadow = float4(input.Position, 1.0);
+    pos_shadow = mul(WorldMatrix, pos_shadow);
     pos_shadow = mul(LightViewMatrix, pos_shadow);
-    pos_shadow = mul(ProjectionMatrix, pos_shadow);
-    pos_shadow.xyz = pos_shadow.xyz / pos_shadow.w;
+    pos_shadow = mul(LightProjectionMatrix, pos_shadow);
 
-    output.PositionShadow.x = (1.0 + pos_shadow.x) / 2.0f;
-	output.PositionShadow.y = (1.0 - pos_shadow.y) / 2.0f;
-	output.PositionShadow.z = pos_shadow.z;
+    output.ShadowCoord.x = (1.0 + pos_shadow.x) / 2.0f;
+	output.ShadowCoord.y = (1.0 - pos_shadow.y) / 2.0f;
+	output.ShadowCoord.z = pos_shadow.z;
 
     return output;
 }
@@ -70,13 +71,14 @@ float4 PSMain(PS_INPUT input) : SV_TARGET{
     float specular = pow(clamp(dot(input.Normal, H), 0.0, 1.0), Specular);
 
     float4 surf_color = float4(diffuse, diffuse, diffuse, 1.0) + float4(specular, specular, specular, 1.0);
-    float4 tex_color = UseTexture ? Tex0.Sample(Samp0, input.UV) : input.Color;
+    float4 tex_color = UseTexture ? Texture0.Sample(Sampler0, input.UV) : input.Color;
     surf_color *= LightIntensity;
     surf_color *= tex_color;
     surf_color += ambient;
     
-    float shadow_map = ShadowMap.Sample(Samp1, input.PositionShadow.xy);
-    float shadow_alpha = (input.PositionShadow.z - 0.005f < shadow_map) ? 1.0f : 0.0f;
+    float shadow_map = ShadowMap.Sample(Sampler1, input.ShadowCoord.xy);
+    float error_margin = 0.005;
+    float shadow_alpha = (shadow_map > input.ShadowCoord.z - 0.005 ) ? 1.0f : 0.5f;
     surf_color *= shadow_alpha;
 
     return surf_color;
@@ -87,8 +89,8 @@ float4 PSMain(PS_INPUT input) : SV_TARGET{
     //return float4(input.Normal, 1.0);
 
     //return float4(input.UV, 0.0, 1.0);
-    //return Tex0.Sample(Samp0, input.UV);
-    //return ShadowMap.Sample(Samp0, input.UV);
+    //return Texture0.Sample(Sampler0, input.UV);
+    //return ShadowMap.Sample(Sampler1, input.UV);
 }
 
 // For Shadow Mapping
@@ -97,7 +99,7 @@ float4 VSShadowMap(VS_INPUT input) : SV_POSITION{
 	float4 pos = float4(input.Position, 1.0f);
 	pos = mul(WorldMatrix, pos);
 	pos = mul(LightViewMatrix, pos);
-    pos = mul(ProjectionMatrix, pos);
+    pos = mul(LightProjectionMatrix, pos);
 
 	return pos;
 }

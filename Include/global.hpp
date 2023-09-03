@@ -22,7 +22,7 @@ namespace albedos
 	float Global::view_lookat[3] = {0.f, 0.f, 0.f};
 	float Global::view_up[3] = {0.f, 0.f, 1.f};
 	float Global::projection_FOV = 60.f;
-	float Global::light_position[3] = {1.f, -2.f, 0.01f};
+	float Global::light_position[3] = {1.f, -2.f, 3.0f};
 	float Global::light_ambient[4] = {0.1f, 0.1f, 0.1f, 1.f};
 	float Global::light_intensity = 1.f;
 }

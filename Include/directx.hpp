@@ -661,7 +661,7 @@ namespace albedos
 
 			ID3D12CommandList *const p_command_list = command_list.Get();
 
-			populate_command_list_depth();
+			populate_command_list_shadow();
 			execute_command_list(p_command_list);
 
 			populate_command_list_render();
@@ -672,7 +672,7 @@ namespace albedos
 
 			RTVIdx = swap_chain->GetCurrentBackBufferIndex();
 		}
-		void populate_command_list_depth()
+		void populate_command_list_shadow()
 		{
 			HRESULT hr;
 
@@ -687,16 +687,11 @@ namespace albedos
 			command_list->RSSetScissorRects(1, &rect_scissor_shadow);
 			command_list->OMSetRenderTargets(0, nullptr, TRUE, &handle_shadow);
 
-			for (int obj_index = 0; obj_index < objects.size(); obj_index++)
+			for (int object_index = 0; object_index < objects.size(); object_index++)
 			{
-				command_list->SetDescriptorHeaps(1, descriptor_heap_cbv_srv.GetAddressOf());
-				D3D12_GPU_DESCRIPTOR_HANDLE cbv_gpu_handle = descriptor_heap_cbv_srv->GetGPUDescriptorHandleForHeapStart();
-				UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-				cbv_gpu_handle.ptr += MAX_CRV_SRV_BUFFER_NUMBER * obj_index * cbv_descriptor_size;
-				command_list->SetGraphicsRootDescriptorTable(0, cbv_gpu_handle);
-
-				albedos::Object &object = objects[obj_index];
-				object.update_draw_directx(command_list.Get(), obj_index, MAX_CRV_SRV_BUFFER_NUMBER);
+				set_constant_root_table_by_object(object_index);
+				albedos::Object &object = objects[object_index];
+				object.update_draw_directx(command_list.Get(), object_index, MAX_CRV_SRV_BUFFER_NUMBER);
 			}
 
 			// SetResourceBarrier(depth_buffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ);
@@ -721,16 +716,11 @@ namespace albedos
 			command_list->RSSetScissorRects(1, &rect_scissor);
 			command_list->OMSetRenderTargets(1, &handle_rtv[RTVIdx], TRUE, &handle_dsv);
 
-			for (int obj_index = 0; obj_index < objects.size(); obj_index++)
+			for (int object_index = 0; object_index < objects.size(); object_index++)
 			{
-				command_list->SetDescriptorHeaps(1, descriptor_heap_cbv_srv.GetAddressOf());
-				D3D12_GPU_DESCRIPTOR_HANDLE cbv_gpu_handle = descriptor_heap_cbv_srv->GetGPUDescriptorHandleForHeapStart();
-				UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-				cbv_gpu_handle.ptr += MAX_CRV_SRV_BUFFER_NUMBER * obj_index * cbv_descriptor_size;
-				command_list->SetGraphicsRootDescriptorTable(0, cbv_gpu_handle);
-
-				albedos::Object &object = objects[obj_index];
-				object.update_draw_directx(command_list.Get(), obj_index, MAX_CRV_SRV_BUFFER_NUMBER);
+				set_constant_root_table_by_object(object_index);
+				albedos::Object &object = objects[object_index];
+				object.update_draw_directx(command_list.Get(), object_index, MAX_CRV_SRV_BUFFER_NUMBER);
 			}
 
 			command_list->SetDescriptorHeaps(1, descriptor_heap_imgui.GetAddressOf());
@@ -835,6 +825,14 @@ namespace albedos
 
 			hr = command_list->Reset(command_allocator.Get(), nullptr);
 			assert(SUCCEEDED(hr) && "Command List Reset[Depth]");
+		}
+		void set_constant_root_table_by_object(int object_index)
+		{
+			command_list->SetDescriptorHeaps(1, descriptor_heap_cbv_srv.GetAddressOf());
+			D3D12_GPU_DESCRIPTOR_HANDLE cbv_gpu_handle = descriptor_heap_cbv_srv->GetGPUDescriptorHandleForHeapStart();
+			UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			cbv_gpu_handle.ptr += cbv_descriptor_size * object_index * MAX_CRV_SRV_BUFFER_NUMBER;
+			command_list->SetGraphicsRootDescriptorTable(0, cbv_gpu_handle);
 		}
 	};
 }

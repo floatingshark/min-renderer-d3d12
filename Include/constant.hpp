@@ -20,6 +20,7 @@ namespace albedos
 			glm::vec4 light_pos;
 			glm::vec4 light_ambient;
 			glm::mat4x4 light_view_matrix;
+			glm::mat4x4 light_projection_matrix;
 			float light_intensity;
 		} Scene;
 
@@ -46,6 +47,7 @@ namespace albedos
 			scene.light_pos = glm::vec4(0.f, 10.f, 0.f, 1.f);
 			scene.light_ambient = {0.f, 0.f, 0.f, 0.f};
 			scene.light_view_matrix = glm::mat4(1.f);
+			scene.light_projection_matrix = glm::mat4(1.f);
 			scene.light_intensity = 1.f;
 
 			local.world = glm::mat4(1.f);
@@ -68,12 +70,13 @@ namespace albedos
 
 			scene.light_pos = glm::vec4(Global::light_position[0], Global::light_position[1], Global::light_position[2], 1.f);
 			scene.light_ambient = glm::vec4(Global::light_ambient[0], Global::light_ambient[1], Global::light_ambient[2], Global::light_ambient[3]);
-			
+
 			scene.light_view_matrix = glm::lookAt(
 				glm::vec3(Global::light_position[0], Global::light_position[1], Global::light_position[2]),
 				glm::vec3(Global::view_lookat[0], Global::view_lookat[1], Global::view_lookat[2]),
-				glm::vec3(Global::view_up[0], Global::view_up[1], Global::view_up[2]));
-			
+				glm::vec3(Global::view_up[0], Global::view_up[1], -Global::view_up[2]));
+			scene.light_projection_matrix = glm::ortho<float>(-10,10,-10,10,-10,20);
+
 			scene.light_intensity = Global::light_intensity;
 		}
 

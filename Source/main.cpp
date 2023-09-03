@@ -49,7 +49,6 @@ int main()
 	{
 		ui->update(scene_objects);
 		window->update_window();
-		control->updage_imgui_contexts();
 		control->update();
 		constant->update_scene();
 		for (albedos::Object &object : scene_objects)

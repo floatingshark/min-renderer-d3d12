@@ -24,10 +24,12 @@ namespace albedos
 		};
 
 	private:
-		ID3D12Device *device;
-		ID3D12DescriptorHeap *descriptor_heap_cbv;
+		UINT CBUFFER_SIZE = 512;
+		UINT TEXTURE_SIZE = 1024;
 
 	protected:
+		ID3D12Device *device;
+		ID3D12DescriptorHeap *descriptor_heap_cbv;
 		Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource> index_buffer;
 		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> constant_buffer;
@@ -35,11 +37,10 @@ namespace albedos
 		std::vector<Shape::Vertex> vertices;
 		std::vector<int> indices;
 		std::vector<byte> texture;
-		UINT texture_size = 1024;
 
 	public:
 		std::string name;
-		ID3D12Resource* shadow_buffer;
+		ID3D12Resource *shadow_buffer;
 
 		glm::vec3 position = {0.f, 0.f, 0.f};
 		glm::vec3 rotation = {0.f, 0.f, 0.f};
@@ -68,7 +69,7 @@ namespace albedos
 		}
 		void init_texture()
 		{
-			texture = albedos::Texture::create_checker(texture_size, 4);
+			texture = albedos::Texture::create_checker(TEXTURE_SIZE, 4);
 		}
 		void init_directx_buffer(ID3D12Device *device, ID3D12DescriptorHeap *descriptor_heap_cbv)
 		{
@@ -99,7 +100,7 @@ namespace albedos
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&index_buffer));
 			assert(SUCCEEDED(hr) && "Create Index Buffer");
 
-			resource_desc.Width = 256;
+			resource_desc.Width = CBUFFER_SIZE;
 			constexpr int cbuff_size = 2;
 			constant_buffer.resize(cbuff_size);
 			for (int i = 0; i < 2; i++)
@@ -114,8 +115,8 @@ namespace albedos
 			heap_properties.CreationNodeMask = 0;
 			heap_properties.VisibleNodeMask = 0;
 			resource_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-			resource_desc.Width = texture_size;
-			resource_desc.Height = texture_size;
+			resource_desc.Width = TEXTURE_SIZE;
+			resource_desc.Height = TEXTURE_SIZE;
 			resource_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 			resource_desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&tex_buffer));
@@ -138,8 +139,8 @@ namespace albedos
 			index_buffer->Unmap(0, nullptr);
 			Mapped = nullptr;
 
-			const D3D12_BOX box = {0, 0, 0, texture_size, texture_size, 1};
-			hr = tex_buffer->WriteToSubresource(0, &box, texture.data(), 4 * texture_size, 4 * texture_size * texture_size);
+			const D3D12_BOX box = {0, 0, 0, TEXTURE_SIZE, TEXTURE_SIZE, 1};
+			hr = tex_buffer->WriteToSubresource(0, &box, texture.data(), 4 * TEXTURE_SIZE, 4 * TEXTURE_SIZE * TEXTURE_SIZE);
 			assert(SUCCEEDED(hr) && "Write to Subrecource");
 		};
 
@@ -165,7 +166,7 @@ namespace albedos
 			D3D12_CPU_DESCRIPTOR_HANDLE cbv_handle = descriptor_heap_cbv->GetCPUDescriptorHandleForHeapStart();
 			UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			cbuff_desc.BufferLocation = constant_buffer[0]->GetGPUVirtualAddress();
-			cbuff_desc.SizeInBytes = 256;
+			cbuff_desc.SizeInBytes = CBUFFER_SIZE;
 			cbv_handle.ptr += index * num_buffers * cbv_descriptor_size;
 			device->CreateConstantBufferView(&cbuff_desc, cbv_handle);
 			// Consntant Buffer View 2
