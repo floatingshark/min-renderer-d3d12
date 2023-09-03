@@ -73,7 +73,7 @@ namespace albedos {
 			ImGui::ColorEdit3("BG", Global::bg_color);
 
 			ImGui::SeparatorText("View");
-			ImGui::DragFloat3("VPos", Global::view_position, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("VPos", Global::view_position, 0.1f, -30.0f, 30.0f, "%.2f");
 			ImGui::DragFloat3("Look", Global::view_lookat, 0.1f, -10.0f, 10.0f, "%.2f");
 			ImGui::DragFloat3("VUp", Global::view_up, 0.01f, -1.0f, 1.0f, "%.2f");
 			/*
@@ -81,7 +81,7 @@ namespace albedos {
 			ImGui::DragFloat("FOV", &Global::FOV, 1.f, 0.0f, 360.0f, "%.2f");
 			*/
 			ImGui::SeparatorText("Light");
-			ImGui::DragFloat3("LPos", Global::light_position, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("LPos", Global::light_position, 0.1f, -30.0f, 30.0f, "%.2f");
 			ImGui::ColorEdit4("LAmb", Global::light_ambient);
 			ImGui::SliderFloat("LInt", &Global::light_intensity, 0.f, 5.f, "%.2f");
 			ImGui::Checkbox("Shadow Mapping", &Global::is_enabled_shadow_mapping);

@@ -137,14 +137,46 @@ namespace albedos {
 															// 前
 															{20, 21, 22},
 															{20, 22, 23}};
+			std::vector<std::vector<float>> uvs			 = {// Left
+													{-1.0f, -1.0f},
+													{-1.0f, 1.0f},
+													{1.0f, 1.0f},
+													{1.0f, -1.0f},
+													// Back
+													{-1.0f, -1.0f},
+													{-1.0f, 1.0f},
+													{1.0f, 1.0f},
+													{1.0f, -1.0f},
+													// Bottom
+													{-1.0f, -1.0f},
+													{-1.0f, 1.0f},
+													{1.0f, 1.0f},
+													{1.0f, -1.0f},
+													// Right
+													{-1.0f, -1.0f},
+													{-1.0f, 1.0f},
+													{1.0f, 1.0f},
+													{1.0f, -1.0f},
+													// Top
+													{-1.0f, -1.0f},
+													{-1.0f, 1.0f},
+													{1.0f, 1.0f},
+													{1.0f, -1.0f},
+													// Front
+													{-1.0f, -1.0f},
+													{-1.0f, 1.0f},
+													{1.0f, 1.0f},
+													{1.0f, -1.0f}};
 
 			out_vertices.resize(24);
 			for (int i = 0; i < static_cast<int>(out_vertices.size()); i++) {
 				std::copy(positions[i].begin(), positions[i].end(), out_vertices[i].Position);
 				std::copy(colors[i].begin(), colors[i].end(), out_vertices[i].Color);
 				std::copy(normals[i].begin(), normals[i].end(), out_vertices[i].Normal);
+				std::copy(uvs[i].begin(), uvs[i].end(), out_vertices[i].UV);
 			}
 
+			out_indices.resize(36);
 			for (int j = 0; j < static_cast<int>(index_vector.size()); j++) {
 				out_indices.insert(out_indices.end(), index_vector[j].begin(), index_vector[j].end());
 			}

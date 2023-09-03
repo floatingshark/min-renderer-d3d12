@@ -69,7 +69,7 @@ namespace albedos {
 				glm::lookAt(glm::vec3(Global::light_position[0], Global::light_position[1], Global::light_position[2]),
 							glm::vec3(Global::view_lookat[0], Global::view_lookat[1], Global::view_lookat[2]),
 							glm::vec3(Global::view_up[0], Global::view_up[1], -Global::view_up[2]));
-			scene.light_projection_matrix = glm::ortho<float>(-10, 10, -10, 10, -10, 20);
+			scene.light_projection_matrix = glm::ortho<float>(-10, 10, -10, 10, -100, 100);
 			scene.light_intensity		  = Global::light_intensity;
 
 			scene.is_enabled_shadow_mapping = Global::is_enabled_shadow_mapping;
