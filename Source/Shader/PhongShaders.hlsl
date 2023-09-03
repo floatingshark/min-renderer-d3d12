@@ -7,6 +7,7 @@ cbuffer scene : register(b0){
     float4x4    LightViewMatrix;
     float4x4    LightProjectionMatrix;
     float       LightIntensity;
+    bool        IsEnabledShadowMapping;
 };
 
 cbuffer local : register(b1){
@@ -78,7 +79,7 @@ float4 PSMain(PS_INPUT input) : SV_TARGET{
     float shadow_map = ShadowMap.Sample(Sampler1, input.ShadowCoord.xy);
     float error_margin = 0.005;
     float shadow_alpha = (shadow_map > input.ShadowCoord.z - 0.005 ) ? 1.0f : 0.5f;
-    surf_color *= shadow_alpha;
+    surf_color = IsEnabledShadowMapping ? surf_color * shadow_alpha : surf_color;
 
     return surf_color;
 

@@ -84,6 +84,7 @@ namespace albedos {
 			ImGui::DragFloat3("LPos", Global::light_position, 0.1f, -10.0f, 10.0f, "%.2f");
 			ImGui::ColorEdit4("LAmb", Global::light_ambient);
 			ImGui::SliderFloat("LInt", &Global::light_intensity, 0.f, 5.f, "%.2f");
+			ImGui::Checkbox("Shadow Mapping", &Global::is_enabled_shadow_mapping);
 
 			ImGui::End();
 		}
