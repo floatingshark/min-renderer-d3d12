@@ -15,6 +15,7 @@
 #include "control.hpp"
 #include "directx.hpp"
 #include "object.hpp"
+#include "scene.hpp"
 #include "shape.hpp"
 #include "ui.hpp"
 
@@ -30,35 +31,22 @@ int main()
 
 	std::shared_ptr<albedos::Constant> constant = std::make_shared<albedos::Constant>();
 	std::shared_ptr<albedos::Control> control = std::make_shared<albedos::Control>();
-
-	albedos::Object object_1 = albedos::Object(directx->get_device(), directx->get_cbv_srv_heap());
-	albedos::Object object_2 = albedos::Object(directx->get_device(), directx->get_cbv_srv_heap());
-	object_1.name = "Torus";
-	object_1.position = {0.f, 0.f, 1.0f};
-	object_1.set_vertex_data(albedos::Shape::Type::Torus);
-	object_2.name = "Plane";
-	object_2.scale = {3.f, 3.f, 1.f};
-	object_2.texture_color[0] = 0.5f;
-	object_2.texture_color[1] = 0.5f;
-	object_2.texture_color[2] = 0.5f;
-	object_2.set_texture_data(albedos::Texture::Type::CheckBoard);
-	std::vector<albedos::Object> scene_objects = {object_1, object_2};
-	directx->init_render_objects(scene_objects);
-	MAIN_LOG("Prepared Mesh Data");
-
+	std::shared_ptr<albedos::Scene> scene = std::make_shared<albedos::Scene>(directx->get_device(), directx->get_cbv_srv_heap());
 	std::shared_ptr<albedos::UI> ui = std::make_shared<albedos::UI>();
+
+	directx->init_render_objects(scene->objects);
+	MAIN_LOG("Prepared Scene Data");
 	ui->init_UI_directX(window->get_window(), directx->get_device(), directx->get_num_frames(), directx->get_imgui_heap());
 	MAIN_LOG("Prepared ImGui DirectX");
 
-	// Update Loop
 	MAIN_LOG("Begin Update Loop");
 	while (window->update_flag())
 	{
-		ui->update(scene_objects);
+		ui->update(scene->objects);
 		window->update_window();
 		control->update();
 		constant->update_scene();
-		for (albedos::Object &object : scene_objects)
+		for (albedos::Object &object : scene->objects)
 		{
 			object.update_constant_buffer_1(constant->get_scene());
 			object.update_constant_buffer_2(constant->get_local());
