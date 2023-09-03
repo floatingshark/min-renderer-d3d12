@@ -11,7 +11,6 @@ cbuffer scene : register(b0){
 
 cbuffer local : register(b1){
     float4x4    WorldMatrix;
-    bool        UseTexture;
     float       Specular;
 };
 
@@ -71,7 +70,7 @@ float4 PSMain(PS_INPUT input) : SV_TARGET{
     float specular = pow(clamp(dot(input.Normal, H), 0.0, 1.0), Specular);
 
     float4 surf_color = float4(diffuse, diffuse, diffuse, 1.0) + float4(specular, specular, specular, 1.0);
-    float4 tex_color = UseTexture ? Texture0.Sample(Sampler0, input.UV) : input.Color;
+    float4 tex_color = Texture0.Sample(Sampler0, input.UV);
     surf_color *= LightIntensity;
     surf_color *= tex_color;
     surf_color += ambient;

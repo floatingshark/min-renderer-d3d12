@@ -15,12 +15,12 @@ namespace albedos
 	class Object
 	{
 	public:
-		Object(ID3D12Device *device, ID3D12DescriptorHeap *heap_cbv, std::string name, Shape::Type type = Shape::Type::Torus)
-			: device(device), descriptor_heap_cbv(heap_cbv), name(name)
+		Object(ID3D12Device *device, ID3D12DescriptorHeap *heap_cbv)
+			: device(device), descriptor_heap_cbv(heap_cbv)
 		{
-			init_vertex(type);
+			init_vertex();
 			init_texture();
-			init_directx_buffer(device, descriptor_heap_cbv);
+			init_directx_buffer();
 		};
 
 	private:
@@ -33,45 +33,32 @@ namespace albedos
 		Microsoft::WRL::ComPtr<ID3D12Resource> vertex_buffer;
 		Microsoft::WRL::ComPtr<ID3D12Resource> index_buffer;
 		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> constant_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource> tex_buffer;
-		std::vector<Shape::Vertex> vertices;
-		std::vector<int> indices;
-		std::vector<byte> texture;
+		Microsoft::WRL::ComPtr<ID3D12Resource> texture_buffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource> shadow_buffer;
+		std::vector<Shape::Vertex> vertex_data;
+		std::vector<int> index_data;
+		std::vector<byte> texture_data;
 
 	public:
 		std::string name;
-		ID3D12Resource *shadow_buffer;
-
 		glm::vec3 position = {0.f, 0.f, 0.f};
 		glm::vec3 rotation = {0.f, 0.f, 0.f};
 		glm::vec3 scale = {1.f, 1.f, 1.f};
-		int use_texture = 0;
+		Texture::Type texture_type = Texture::Type::Monochrome;
+		float texture_color[4] = {1.f, 1.f, 1.f, 1.f};
 		float specular = 100.f;
 
 	public:
-		void init_vertex(Shape::Type type = Shape::Type::Torus)
+		void init_vertex()
 		{
-			switch (type)
-			{
-			case Shape::Type::Plane:
-				albedos::Shape::create_plane(vertices, indices);
-				break;
-			case Shape::Type::Cube:
-				albedos::Shape::create_cube(vertices, indices);
-				break;
-			case Shape::Type::Torus:
-				albedos::Shape::create_torus(vertices, indices);
-				break;
-			default:
-				albedos::Shape::create_torus(vertices, indices);
-				break;
-			}
+			albedos::Shape::create_plane(vertex_data, index_data);
 		}
 		void init_texture()
 		{
-			texture = albedos::Texture::create_checker(TEXTURE_SIZE, 4);
+			byte color[4] = {255, 255, 255, 255};
+			texture_data = albedos::Texture::create_monochromatic(TEXTURE_SIZE, color);
 		}
-		void init_directx_buffer(ID3D12Device *device, ID3D12DescriptorHeap *descriptor_heap_cbv)
+		void init_directx_buffer()
 		{
 			// Create Buffers
 			HRESULT hr;
@@ -85,7 +72,7 @@ namespace albedos
 			heap_properties.VisibleNodeMask = 1;
 
 			resource_desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-			resource_desc.Width = sizeof(Shape::Vertex) * vertices.size();
+			resource_desc.Width = sizeof(Shape::Vertex) * vertex_data.size();
 			resource_desc.Height = 1;
 			resource_desc.DepthOrArraySize = 1;
 			resource_desc.MipLevels = 1;
@@ -119,35 +106,35 @@ namespace albedos
 			resource_desc.Height = TEXTURE_SIZE;
 			resource_desc.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
 			resource_desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&tex_buffer));
+			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc, D3D12_RESOURCE_STATE_GENERIC_READ, nullptr, IID_PPV_ARGS(&texture_buffer));
 			assert(SUCCEEDED(hr) && "Create Texture Buffer");
 
 			// Init Buffers
 			void *Mapped;
-			const UINT size_vertices = sizeof(Shape::Vertex) * vertices.size();
-			const size_t size_indices = sizeof(int) * indices.size();
+			const UINT size_vertices = sizeof(Shape::Vertex) * vertex_data.size();
+			const size_t size_indices = sizeof(int) * index_data.size();
 
 			hr = vertex_buffer->Map(0, nullptr, &Mapped);
 			assert(SUCCEEDED(hr) && "Fialed Vertex Buffer Mapping");
-			CopyMemory(Mapped, vertices.data(), size_vertices);
+			CopyMemory(Mapped, vertex_data.data(), size_vertices);
 			vertex_buffer->Unmap(0, nullptr);
 			Mapped = nullptr;
 
 			hr = index_buffer->Map(0, nullptr, &Mapped);
 			assert(SUCCEEDED(hr) && "Failed Index Buffer Mapping");
-			CopyMemory(Mapped, indices.data(), size_indices);
+			CopyMemory(Mapped, index_data.data(), size_indices);
 			index_buffer->Unmap(0, nullptr);
 			Mapped = nullptr;
 
 			const D3D12_BOX box = {0, 0, 0, TEXTURE_SIZE, TEXTURE_SIZE, 1};
-			hr = tex_buffer->WriteToSubresource(0, &box, texture.data(), 4 * TEXTURE_SIZE, 4 * TEXTURE_SIZE * TEXTURE_SIZE);
+			hr = texture_buffer->WriteToSubresource(0, &box, texture_data.data(), 4 * TEXTURE_SIZE, 4 * TEXTURE_SIZE * TEXTURE_SIZE);
 			assert(SUCCEEDED(hr) && "Write to Subrecource");
 		};
 
 		void update_draw_directx(ID3D12GraphicsCommandList *command_list, int index, int num_buffers)
 		{
-			UINT size_vertices = sizeof(Shape::Vertex) * vertices.size();
-			const size_t size_indices = sizeof(int) * indices.size();
+			UINT size_vertices = sizeof(Shape::Vertex) * vertex_data.size();
+			const size_t size_indices = sizeof(int) * index_data.size();
 			D3D12_VERTEX_BUFFER_VIEW vertex_view{};
 			D3D12_INDEX_BUFFER_VIEW index_view{};
 
@@ -183,25 +170,24 @@ namespace albedos
 			tex_desc.Texture2D.ResourceMinLODClamp = 0.0F;
 			tex_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			cbv_handle.ptr += cbv_descriptor_size;
-			device->CreateShaderResourceView(tex_buffer.Get(), &tex_desc, cbv_handle);
+			device->CreateShaderResourceView(texture_buffer.Get(), &tex_desc, cbv_handle);
 			// Constant buffer View 4 (Shadow Depth Texture)
 			tex_desc.Format = DXGI_FORMAT_R32_FLOAT;
 			cbv_handle.ptr += cbv_descriptor_size;
-			device->CreateShaderResourceView(shadow_buffer, &tex_desc, cbv_handle);
+			device->CreateShaderResourceView(shadow_buffer.Get(), &tex_desc, cbv_handle);
 
 			command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 			command_list->IASetVertexBuffers(0, 1, &vertex_view);
 			command_list->IASetIndexBuffer(&index_view);
 
-			command_list->DrawIndexedInstanced(indices.size(), 1, 0, 0, 0);
+			command_list->DrawIndexedInstanced(index_data.size(), 1, 0, 0, 0);
 		}
-
 		void update_constant_buffer_1(Constant::Scene scene)
 		{
 			HRESULT hr;
 			void *Mapped;
 
-			calc_scene(scene);
+			calculate_scene(scene);
 
 			hr = constant_buffer[0]->Map(0, nullptr, &Mapped);
 			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Scene]");
@@ -214,7 +200,7 @@ namespace albedos
 			HRESULT hr;
 			void *Mapped;
 
-			calc_local(object);
+			calculate_local(object);
 
 			hr = constant_buffer[1]->Map(0, nullptr, &Mapped);
 			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Object]");
@@ -222,19 +208,73 @@ namespace albedos
 			constant_buffer[1]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
+		void set_shadow_buffer(ID3D12Resource *in_buffer)
+		{
+			shadow_buffer = in_buffer;
+		}
+		void set_vertex_data(Shape::Type in_type)
+		{
+			vertex_data.clear();
+			index_data.clear();
+
+			switch (in_type)
+			{
+			case Shape::Type::Plane:
+				albedos::Shape::create_plane(vertex_data, index_data);
+				break;
+			case Shape::Type::Cube:
+				albedos::Shape::create_cube(vertex_data, index_data);
+				break;
+			case Shape::Type::Torus:
+				albedos::Shape::create_torus(vertex_data, index_data);
+				break;
+			default:
+				break;
+			}
+
+			init_directx_buffer();
+		}
+		void set_texture_data(Texture::Type in_type)
+		{
+			texture_data.clear();
+			texture_type = in_type;
+
+			HRESULT hr;
+			const int checker_num = 4;
+			byte color[4] = {
+				(byte)(texture_color[0] * 255),
+				(byte)(texture_color[1] * 255),
+				(byte)(texture_color[2] * 255),
+				(byte)(texture_color[3] * 255)};
+
+			switch (in_type)
+			{
+			case Texture::Type::Monochrome:
+				texture_data = Texture::create_monochromatic(TEXTURE_SIZE, color);
+				break;
+			case Texture::Type::CheckBoard:
+				texture_data = Texture::create_checker(TEXTURE_SIZE, color, checker_num);
+				break;
+			default:
+				break;
+			}
+
+			const D3D12_BOX box = {0, 0, 0, TEXTURE_SIZE, TEXTURE_SIZE, 1};
+			hr = texture_buffer->WriteToSubresource(0, &box, texture_data.data(), 4 * TEXTURE_SIZE, 4 * TEXTURE_SIZE * TEXTURE_SIZE);
+			assert(SUCCEEDED(hr) && "Write to Subrecource");
+		}
 
 	protected:
-		void calc_scene(Constant::Scene &scene)
+		void calculate_scene(Constant::Scene &scene)
 		{
 		}
-		void calc_local(Constant::Local &local)
+		void calculate_local(Constant::Local &local)
 		{
 			local.world = glm::translate(local.world, position);
 			local.world = glm::rotate(local.world, rotation[0], {1.f, 0.f, 0.f});
 			local.world = glm::rotate(local.world, rotation[1], {0.f, 1.f, 0.f});
 			local.world = glm::rotate(local.world, rotation[2], {0.f, 0.f, 1.f});
 			local.world = glm::scale(local.world, scale);
-			local.use_texture = (int)use_texture;
 			local.specular = specular;
 		}
 	};

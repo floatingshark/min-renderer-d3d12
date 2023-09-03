@@ -9,6 +9,7 @@
 #include <imgui/imgui_impl_dx12.h>
 #include "constant.hpp"
 #include "global.hpp"
+#include "texture.hpp"
 
 namespace albedos
 {
@@ -69,7 +70,7 @@ namespace albedos
 								heap_srv->GetCPUDescriptorHandleForHeapStart(),
 								heap_srv->GetGPUDescriptorHandleForHeapStart());
 		}
-		
+
 		void window_1()
 		{
 			ImGui::Begin("Control Panel");
@@ -142,16 +143,20 @@ namespace albedos
 			ImGui::DragFloat3("Scl", (float *)&object.scale, 0.1f, -10.0f, 10.0f, "%.2f");
 
 			ImGui::SeparatorText("Material");
-			enum Element_GraphicsAPI
+			const char *tex_items[] = {"Monochrome", "Checker Board"};
+			int tex_item_current = (int)object.texture_type;
+			if (ImGui::Combo("Tex", &tex_item_current, tex_items, IM_ARRAYSIZE(tex_items)))
 			{
-				Element_VertexColor,
-				Element_Texture,
-				Element_COUNT
-			};
-			const char *elems_texture_names[Element_COUNT] = {"VertexColor", "Texture"};
-			const char *elem_texture_name = (object.use_texture >= 0 && object.use_texture < Element_COUNT) ? elems_texture_names[object.use_texture] : "Unknown";
-			ImGui::SliderInt("Surf", &object.use_texture, 0, Element_COUNT - 1, elem_texture_name);
-			ImGui::SliderFloat("Spec", &object.specular, 0.01f, 1000.f, "%.2f");
+				const Texture::Type texture_type = (Texture::Type)tex_item_current;
+				object.set_texture_data(texture_type);
+			}
+			if (ImGui::ColorEdit3("TCol", object.texture_color))
+			{
+				const Texture::Type texture_type = (Texture::Type)tex_item_current;
+				object.set_texture_data(texture_type);
+			}
+
+			ImGui::SliderFloat("Spec", &object.specular, 0.1f, 1000.f, "%.2f");
 
 			ImGui::End();
 		}

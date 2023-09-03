@@ -755,7 +755,7 @@ namespace albedos
 
 			for (albedos::Object &obj : objects)
 			{
-				obj.shadow_buffer = shadow_buffer.Get();
+				obj.set_shadow_buffer(shadow_buffer.Get());
 			}
 		}
 

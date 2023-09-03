@@ -19,7 +19,7 @@ namespace albedos
 	protected:
 		const uint32_t WIDTH = 800;
 		const uint32_t HEIGHT = 600;
-		const std::string NAME = "albedo";
+		const std::string NAME = "albedo 0.1.0";
 		GLFWwindow *window = nullptr;
 
 	public:

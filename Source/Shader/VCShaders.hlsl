@@ -6,6 +6,7 @@ cbuffer scene : register(b0){
 cbuffer local : register(b1){
     float4x4 World;
 };
+
 struct VS_INPUT{
     float3 Position : POSITION;
     float4 Color    : COLOR;
@@ -35,4 +36,10 @@ PS_INPUT VSMain(VS_INPUT input){
 
 float4 PSMain(PS_INPUT input) : SV_TARGET{
     return input.Color;
+}
+
+float4 VSShadowMap(VS_INPUT input) : SV_POSITION{
+
+	float4 pos = float4(input.Position, 1.0f);
+	return pos;
 }

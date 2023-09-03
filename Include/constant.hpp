@@ -27,7 +27,6 @@ namespace albedos
 		typedef struct Local
 		{
 			glm::mat4x4 world;
-			int use_texture;
 			float specular; // Specular Power
 		} Local;
 
@@ -51,7 +50,6 @@ namespace albedos
 			scene.light_intensity = 1.f;
 
 			local.world = glm::mat4(1.f);
-			local.use_texture = (int)false;
 			local.specular = 1.f;
 		}
 		void update_scene()
