@@ -25,6 +25,7 @@ namespace albedos {
 
 			object_1.name	  = "Default Torus";
 			object_1.position = {0.f, 0.f, 1.0f};
+			object_1.rotation = {0.3f, 0.2f, 0.f};
 			object_1.set_vertex_data(albedos::Shape::Type::Torus);
 
 			object_2.name			  = "Default Plane";

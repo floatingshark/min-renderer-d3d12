@@ -75,12 +75,12 @@ namespace albedos {
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
 												 D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
 												 IID_PPV_ARGS(&vertex_buffer));
-			assert(SUCCEEDED(hr) && "Create Vertex Buffer");
+			assert(SUCCEEDED(hr) && "Create Committed Resource Vertex Buffer");
 
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
 												 D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
 												 IID_PPV_ARGS(&index_buffer));
-			assert(SUCCEEDED(hr) && "Create Index Buffer");
+			assert(SUCCEEDED(hr) && "Create Committed Resource Index Buffer");
 
 			resource_desc.Width		 = CBUFFER_SIZE;
 			constexpr int cbuff_size = 2;
@@ -89,7 +89,7 @@ namespace albedos {
 				hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
 													 D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
 													 IID_PPV_ARGS(&constant_buffer[i]));
-				assert(SUCCEEDED(hr) && "Create Constant Buffer");
+				assert(SUCCEEDED(hr) && "Create Committed Resource Constant Buffer");
 			}
 
 			heap_properties.Type				 = D3D12_HEAP_TYPE_CUSTOM;
@@ -100,12 +100,12 @@ namespace albedos {
 			resource_desc.Dimension				 = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 			resource_desc.Width					 = TEXTURE_SIZE;
 			resource_desc.Height				 = TEXTURE_SIZE;
-			resource_desc.Format				 = DXGI_FORMAT_B8G8R8A8_UNORM;
+			resource_desc.Format				 = DXGI_FORMAT_R8G8B8A8_UNORM;
 			resource_desc.Layout				 = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
 												 D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
 												 IID_PPV_ARGS(&texture_buffer));
-			assert(SUCCEEDED(hr) && "Create Texture Buffer");
+			assert(SUCCEEDED(hr) && "Create Committed Resource Texture Buffer");
 
 			// Init Buffers
 			void*		 Mapped;
@@ -147,7 +147,7 @@ namespace albedos {
 			index_view.Format		  = DXGI_FORMAT_R32_UINT;
 			index_view.SizeInBytes	  = size_indices;
 
-			// Consntant Buffer View 1
+			// Consntant Buffer View Scene (Index 1)
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbuff_desc = {};
 			D3D12_CPU_DESCRIPTOR_HANDLE		cbv_handle = descriptor_heap_cbv->GetCPUDescriptorHandleForHeapStart();
 			UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -155,13 +155,13 @@ namespace albedos {
 			cbuff_desc.SizeInBytes	  = CBUFFER_SIZE;
 			cbv_handle.ptr += index * num_buffers * cbv_descriptor_size;
 			device->CreateConstantBufferView(&cbuff_desc, cbv_handle);
-			// Consntant Buffer View 2
+			// Consntant Buffer View Local (Index 2)
 			cbuff_desc.BufferLocation = constant_buffer[1]->GetGPUVirtualAddress();
 			cbv_handle.ptr += cbv_descriptor_size;
 			device->CreateConstantBufferView(&cbuff_desc, cbv_handle);
-			// Consntant Buffer View 3 (Texture)
+			// Shader Resource View Texture (Index 3)
 			D3D12_SHADER_RESOURCE_VIEW_DESC tex_desc{};
-			tex_desc.Format						   = DXGI_FORMAT_B8G8R8A8_UNORM;
+			tex_desc.Format						   = DXGI_FORMAT_R8G8B8A8_UNORM;
 			tex_desc.ViewDimension				   = D3D12_SRV_DIMENSION_TEXTURE2D;
 			tex_desc.Texture2D.MipLevels		   = 1;
 			tex_desc.Texture2D.MostDetailedMip	   = 0;
@@ -170,7 +170,7 @@ namespace albedos {
 			tex_desc.Shader4ComponentMapping	   = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			cbv_handle.ptr += cbv_descriptor_size;
 			device->CreateShaderResourceView(texture_buffer.Get(), &tex_desc, cbv_handle);
-			// Constant buffer View 4 (Shadow Depth Texture)
+			// Shader Resource View Depth Texture (Index 4)
 			tex_desc.Format = DXGI_FORMAT_R32_FLOAT;
 			cbv_handle.ptr += cbv_descriptor_size;
 			device->CreateShaderResourceView(shadow_buffer.Get(), &tex_desc, cbv_handle);
