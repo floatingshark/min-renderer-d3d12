@@ -690,8 +690,8 @@ namespace albedos {
 			heap_properties.VisibleNodeMask		 = 0;
 
 			resource_desc.Dimension			 = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-			resource_desc.Width				 = 1024;
-			resource_desc.Height			 = 1024;
+			resource_desc.Width				 = WIDTH;
+			resource_desc.Height			 = HEIGHT;
 			resource_desc.DepthOrArraySize	 = 1;
 			resource_desc.MipLevels			 = 1;
 			resource_desc.Format			 = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -712,7 +712,7 @@ namespace albedos {
 												 IID_PPV_ARGS(&buffer_render_texture));
 			DIRECTX_ASSERT(hr, "Create Comitted Resource[Render Texture]");
 
-			// Set RTV Draw Target to Render Texture
+			// DIRECTX_ASSERT(hr, "Get Buffer[Render Texture]");
 			handle_rtv_render_texture = descriptor_heap_rtv_render_texture->GetCPUDescriptorHandleForHeapStart();
 			device->CreateRenderTargetView(buffer_render_texture.Get(), nullptr, handle_rtv_render_texture);
 
@@ -860,8 +860,10 @@ namespace albedos {
 			populate_command_list_render();
 			execute_command_list(p_command_list);
 
-			populate_command_list_postprocess();
-			execute_command_list(p_command_list);
+			if (Global::is_enabled_postprocess) {
+				populate_command_list_postprocess();
+				execute_command_list(p_command_list);
+			}
 
 			hr = swap_chain->Present(1, 0);
 			assert(SUCCEEDED(hr) && "Swapchain Present");
@@ -900,15 +902,24 @@ namespace albedos {
 
 			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
 								 D3D12_RESOURCE_STATE_RENDER_TARGET);
+			set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_PRESENT,
+								 D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-			const FLOAT ClearColor[4] = {Global::bg_color[0], Global::bg_color[1], Global::bg_color[2],
-										 Global::bg_color[3]};
-			command_list->ClearRenderTargetView(handle_rtv[rtv_index], ClearColor, 0, nullptr);
+			const FLOAT clear_color[4] = {Global::bg_color[0], Global::bg_color[1], Global::bg_color[2],
+										  Global::bg_color[3]};
+			command_list->ClearRenderTargetView(handle_rtv[rtv_index], clear_color, 0, nullptr);
 			command_list->ClearDepthStencilView(handle_dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+			const FLOAT clear_color_render_texture[4] = {0.f, 0.f, 0.f, 1.f};
+			command_list->ClearRenderTargetView(handle_rtv_render_texture, clear_color_render_texture, 0, nullptr);
 
 			command_list->RSSetViewports(1, &viewport);
 			command_list->RSSetScissorRects(1, &rect_scissor);
-			command_list->OMSetRenderTargets(1, &handle_rtv[rtv_index], TRUE, &handle_dsv);
+			if (Global::is_enabled_postprocess) {
+				command_list->OMSetRenderTargets(1, &handle_rtv_render_texture, TRUE, &handle_dsv);
+			} else {
+				command_list->OMSetRenderTargets(1, &handle_rtv[rtv_index], TRUE, &handle_dsv);
+			}
 
 			command_list->SetGraphicsRootSignature(root_signature.Get());
 			command_list->SetPipelineState(pipeline_state_render.Get());
@@ -922,6 +933,8 @@ namespace albedos {
 			command_list->SetDescriptorHeaps(1, descriptor_heap_imgui.GetAddressOf());
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), command_list.Get());
 
+			set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+								 D3D12_RESOURCE_STATE_PRESENT);
 			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 								 D3D12_RESOURCE_STATE_PRESENT);
 
@@ -931,12 +944,16 @@ namespace albedos {
 		void populate_command_list_postprocess() {
 			HRESULT hr;
 
-			const FLOAT clear_color_render_texture[4] = {0.f, 0.f, 0.f, 1.f};
-			command_list->ClearRenderTargetView(handle_rtv_render_texture, clear_color_render_texture, 0, nullptr);
+			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
+								 D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+			const FLOAT clear_color[4] = {Global::bg_color[0], Global::bg_color[1], Global::bg_color[2],
+										  Global::bg_color[3]};
+			command_list->ClearRenderTargetView(handle_rtv[rtv_index], clear_color, 0, nullptr);
 
 			command_list->RSSetViewports(1, &viewport);
 			command_list->RSSetScissorRects(1, &rect_scissor);
-			command_list->OMSetRenderTargets(1, &handle_rtv_render_texture, TRUE, nullptr);
+			command_list->OMSetRenderTargets(1, &handle_rtv[rtv_index], TRUE, nullptr);
 
 			command_list->SetGraphicsRootSignature(root_signature_postprocess.Get());
 			command_list->SetPipelineState(pipeline_state_postprocess.Get());
@@ -962,18 +979,20 @@ namespace albedos {
 			command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 			command_list->DrawInstanced(6, 1, 0, 0);
 
+			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+								 D3D12_RESOURCE_STATE_PRESENT);
+
 			hr = command_list->Close();
 			assert(SUCCEEDED(hr) && "Command List [Postprocess] Closed");
 		}
 
-		void set_render_objects(std::vector<albedos::Object>& in_objects) {
+		inline void set_render_objects(std::vector<albedos::Object>& in_objects) {
 			objects = in_objects;
 
 			for (albedos::Object& obj : objects) {
 				obj.set_shadow_buffer(shadow_buffer.Get());
 			}
 		}
-
 		inline UINT64				 get_num_frames() { return NUM_FRAMES_IN_FLIGHT; }
 		inline ID3D12Device*		 get_device() { return device.Get(); }
 		inline ID3D12DescriptorHeap* get_cbv_srv_heap() { return descriptor_heap_cbv_srv.Get(); }

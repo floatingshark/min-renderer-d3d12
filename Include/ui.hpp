@@ -87,6 +87,9 @@ namespace albedos {
 			ImGui::Checkbox("Shadow Mapping", &Global::is_enabled_shadow_mapping);
 			ImGui::SliderFloat("Shadow Bias", &Global::shadow_mapping_bias, 0.f, 0.0002f, "%.6f");
 
+			ImGui::SeparatorText("Postprocess");
+			ImGui::Checkbox("Postprocess", &Global::is_enabled_postprocess);
+
 			ImGui::End();
 		}
 		/**
