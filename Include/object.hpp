@@ -234,7 +234,7 @@ namespace albedos {
 			texture_type = in_type;
 			
 			HRESULT	  hr;
-			const int checker_num = 4;
+			const int checker_num = 8;
 			byte	  color[4]	  = {(byte)(texture_color[0] * 255.f), (byte)(texture_color[1] * 255.f),
 									 (byte)(texture_color[2] * 255.f), (byte)(texture_color[3] * 255.f)};
 

@@ -20,7 +20,7 @@
 #include <vector>
 
 int main() {
-	MAIN_LOG("Begin Program");
+	MAIN_LOG("============================= Begin Program =============================");
 
 	std::unique_ptr<albedos::Window> window = std::make_unique<albedos::Window>();
 	MAIN_LOG("Prepared Window");
@@ -66,7 +66,7 @@ int main() {
 	ui->shutdown();
 	window->shutdown();
 
-	MAIN_LOG("End Program");
+	MAIN_LOG("============================= End Program =============================");
 
 	return 0;
 }

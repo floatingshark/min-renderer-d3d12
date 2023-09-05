@@ -1,5 +1,5 @@
 #pragma once
-#define DIRECTX_LOG(log_msg) std::cout << "[D3D12]" << log_msg << std::endl;
+#define DIRECTX_LOG(log_msg) std::cout << "[DirectX12]" << log_msg << std::endl;
 #define DIRECTX_ASSERT(hr, log_msg) assert(SUCCEEDED(hr) && log_msg);
 
 #include "constant.hpp"
@@ -102,7 +102,7 @@ namespace albedos {
 			init_descriptor_heaps();
 			DIRECTX_LOG("Initialized Descriptor Heaps");
 			init_render_target_view();
-			DIRECTX_LOG("Initialized Render Target");
+			DIRECTX_LOG("Initialized Render Targets");
 			init_depth_stencil_view();
 			DIRECTX_LOG("Initialized Depth Buffer");
 			init_command_list();
@@ -110,19 +110,19 @@ namespace albedos {
 			init_root_signature();
 			DIRECTX_LOG("Initialized Root Signature");
 			init_pipeline_state_render();
-			DIRECTX_LOG("Initialized Pipeline States[Render]");
+			DIRECTX_LOG("Initialized Pipeline States");
 
 			init_descriptor_heaps_shadow();
-			DIRECTX_LOG("Initialized Descriptor Heaps[Shadow]");
+			DIRECTX_LOG("Initialized Descriptor Heaps[Shadow Mapping]");
 			init_shadow_resource_and_target_view();
-			DIRECTX_LOG("Initialized Shadow Target View");
+			DIRECTX_LOG("Initialized Resources and Target Views[Shadow Mapping]");
 			init_pipeline_state_shadow();
-			DIRECTX_LOG("Initialized Pipeline States[Depth]");
+			DIRECTX_LOG("Initialized Pipeline States[Shadow Mapping]");
 
 			init_descriptor_heap_postprocess();
-			DIRECTX_LOG("Initialized Descriptor Heap[Render Texture]");
+			DIRECTX_LOG("Initialized Descriptor Heaps[Postprocess]");
 			init_postprocess_resource_and_target_view();
-			DIRECTX_LOG("Initialized Render Texture Target View");
+			DIRECTX_LOG("Initialized Render Resorces and Target Views[Postprocess]");
 			init_root_signature_postprocess();
 			DIRECTX_LOG("Initialized Root Signature[Postprocess]");
 			init_pipeline_state_postprocess();
@@ -131,7 +131,7 @@ namespace albedos {
 			init_descriptor_heaps_msaa();
 			DIRECTX_LOG("Initialized Descriptor Heaps[MSAA]");
 			init_msaa_resources_and_target_view();
-			DIRECTX_LOG("Initialized Resources and Views[MSAA]");
+			DIRECTX_LOG("Initialized Resources and Target Views[MSAA]");
 			init_pipeline_state_msaa();
 			DIRECTX_LOG("Initialized Pipeline States[MSAA]");
 		}
@@ -200,10 +200,11 @@ namespace albedos {
 			if (SUCCEEDED(device->QueryInterface(IID_PPV_ARGS(&info_queue)))) {
 				D3D12MessageFunc message_func = [](D3D12_MESSAGE_CATEGORY Category, D3D12_MESSAGE_SEVERITY Severity,
 												   D3D12_MESSAGE_ID ID, LPCSTR pDescription, void* pContext) {
-					if (ID == 560 || ID == 586) {
+					(void)pContext;
+
+					if (Severity == 3) {
 						return;
 					}
-					(void)pContext;
 					std::cout << "[" << ID << "]"
 							  << "[" << Category << "]"
 							  << "[" << Severity << "]" << pDescription << std::endl;

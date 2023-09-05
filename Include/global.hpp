@@ -22,8 +22,8 @@ namespace albedos {
 	};
 
 	float Global::bg_color[4]				= {0.725f, 0.788f, 0.788f, 1.f};
-	float Global::view_position[3]			= {-0.5f, -4.f, 10.f};
-	float Global::view_lookat[3]			= {0.f, 0.f, 0.f};
+	float Global::view_position[3]			= {-0.5f, -6.f, 4.f};
+	float Global::view_lookat[3]			= {0.f, 0.f, 1.f};
 	float Global::view_up[3]				= {0.f, 0.f, 1.f};
 	float Global::projection_FOV			= 60.f;
 	float Global::light_position[3]			= {6.f, 2.f, 8.0f};
