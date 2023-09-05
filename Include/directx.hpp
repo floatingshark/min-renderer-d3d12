@@ -89,7 +89,7 @@ namespace albedos {
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>	 pipeline_state_msaa;
 
 	protected:
-		// Initialize Functions
+		// Initialize DirectX12 Functions
 		void init_directx() {
 			init_viewport();
 			DIRECTX_LOG("Initialized Viewport");
@@ -114,14 +114,14 @@ namespace albedos {
 
 			init_descriptor_heaps_shadow();
 			DIRECTX_LOG("Initialized Descriptor Heaps[Shadow]");
-			init_shadow_target_view();
+			init_shadow_resource_and_target_view();
 			DIRECTX_LOG("Initialized Shadow Target View");
 			init_pipeline_state_shadow();
 			DIRECTX_LOG("Initialized Pipeline States[Depth]");
 
 			init_descriptor_heap_postprocess();
 			DIRECTX_LOG("Initialized Descriptor Heap[Render Texture]");
-			init_postprocess_target_view();
+			init_postprocess_resource_and_target_view();
 			DIRECTX_LOG("Initialized Render Texture Target View");
 			init_root_signature_postprocess();
 			DIRECTX_LOG("Initialized Root Signature[Postprocess]");
@@ -130,7 +130,7 @@ namespace albedos {
 
 			init_descriptor_heaps_msaa();
 			DIRECTX_LOG("Initialized Descriptor Heaps[MSAA]");
-			init_msaa_target_view();
+			init_msaa_resources_and_target_view();
 			DIRECTX_LOG("Initialized Resources and Views[MSAA]");
 			init_pipeline_state_msaa();
 			DIRECTX_LOG("Initialized Pipeline States[MSAA]");
@@ -552,7 +552,7 @@ namespace albedos {
 			hr = device->CreateDescriptorHeap(&descriptor_heap_desc, IID_PPV_ARGS(&descriptor_heap_shadow));
 			assert(SUCCEEDED(hr) && "Create Descriptro Heap for Shadow");
 		}
-		void init_shadow_target_view() {
+		void init_shadow_resource_and_target_view() {
 			HRESULT hr;
 
 			D3D12_HEAP_PROPERTIES heap_properties{};
@@ -693,7 +693,7 @@ namespace albedos {
 																						IID_PPV_ARGS(&descriptor_heap_cbv_srv_postprocess));
 			assert(SUCCEEDED(hr) && "Create CBV SRV UAV Descriptor Heap[Postprocess]");
 		}
-		void init_postprocess_target_view() {
+		void init_postprocess_resource_and_target_view() {
 			HRESULT hr;
 
 			D3D12_HEAP_PROPERTIES heap_properties{};
@@ -717,10 +717,10 @@ namespace albedos {
 			resource_desc.Flags				 = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
 			clear_value.Format	 = DXGI_FORMAT_R8G8B8A8_UNORM;
-			clear_value.Color[0] = 0.f;
-			clear_value.Color[1] = 0.f;
-			clear_value.Color[2] = 0.f;
-			clear_value.Color[3] = 1.f;
+			clear_value.Color[0] = Global::bg_color[0];
+			clear_value.Color[1] = Global::bg_color[1];
+			clear_value.Color[2] = Global::bg_color[2];
+			clear_value.Color[3] = Global::bg_color[3];
 
 			// Create Render Texture Resource
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
@@ -884,7 +884,7 @@ namespace albedos {
 			hr = device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(&descriptor_heap_dsv_msaa));
 			assert(SUCCEEDED(hr) && "Create DSV Descriptor Heap[MSAA]");
 		}
-		void init_msaa_target_view() {
+		void init_msaa_resources_and_target_view() {
 			HRESULT hr;
 
 			D3D12_HEAP_PROPERTIES heap_properties{};
@@ -908,10 +908,10 @@ namespace albedos {
 			resource_desc.Flags				 = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
 			clear_value.Format	 = DXGI_FORMAT_R8G8B8A8_UNORM;
-			clear_value.Color[0] = 0.f;
-			clear_value.Color[1] = 0.f;
-			clear_value.Color[2] = 0.f;
-			clear_value.Color[3] = 1.f;
+			clear_value.Color[0] = Global::bg_color[0];
+			clear_value.Color[1] = Global::bg_color[1];
+			clear_value.Color[2] = Global::bg_color[2];
+			clear_value.Color[3] = Global::bg_color[3];
 
 			// Create Render Texture Resource
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
@@ -1068,14 +1068,14 @@ namespace albedos {
 			if (!Global::is_enabled_msaa) {
 				populate_command_list_render();
 				execute_command_list(p_command_list);
-
-				if (Global::is_enabled_postprocess) {
-					populate_command_list_postprocess();
-					execute_command_list(p_command_list);
-				}
 			} else {
 
 				populate_command_list_msaa();
+				execute_command_list(p_command_list);
+			}
+
+			if (Global::is_enabled_postprocess) {
+				populate_command_list_postprocess();
 				execute_command_list(p_command_list);
 			}
 
@@ -1087,6 +1087,19 @@ namespace albedos {
 
 			rtv_index = swap_chain->GetCurrentBackBufferIndex();
 		}
+		inline void set_render_objects(std::vector<albedos::Object>& in_objects) {
+			objects = in_objects;
+
+			for (albedos::Object& obj : objects) {
+				obj.set_shadow_buffer(shadow_buffer.Get());
+			}
+		}
+		inline UINT64				 get_num_frames() { return NUM_FRAMES_IN_FLIGHT; }
+		inline ID3D12Device*		 get_device() { return device.Get(); }
+		inline ID3D12DescriptorHeap* get_cbv_srv_heap() { return descriptor_heap_cbv_srv.Get(); }
+		inline ID3D12DescriptorHeap* get_imgui_heap() { return descriptor_heap_imgui.Get(); }
+
+	protected:
 		void populate_command_list_shadow() {
 			HRESULT hr;
 
@@ -1115,11 +1128,12 @@ namespace albedos {
 			assert(SUCCEEDED(hr) && "Command List [Depth] Closed");
 		}
 		void populate_command_list_render() {
-			HRESULT hr;
+			HRESULT	   hr;
+			const bool flag_postprocess = Global::is_enabled_postprocess;
 
 			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
 								 D3D12_RESOURCE_STATE_RENDER_TARGET);
-			if (Global::is_enabled_postprocess) {
+			if (flag_postprocess) {
 				set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_PRESENT,
 									 D3D12_RESOURCE_STATE_RENDER_TARGET);
 			}
@@ -1129,8 +1143,9 @@ namespace albedos {
 			command_list->ClearRenderTargetView(handle_rtv[rtv_index], clear_color, 0, nullptr);
 			command_list->ClearDepthStencilView(handle_dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-			if (Global::is_enabled_postprocess) {
-				const FLOAT clear_color_render_texture[4] = {0.f, 0.f, 0.f, 1.f};
+			if (flag_postprocess) {
+				const FLOAT clear_color_render_texture[4] = {Global::bg_color[0], Global::bg_color[1],
+															 Global::bg_color[2], Global::bg_color[3]};
 				command_list->ClearRenderTargetView(handle_rtv_render_texture, clear_color_render_texture, 0, nullptr);
 			}
 
@@ -1151,7 +1166,7 @@ namespace albedos {
 				object.update_draw_directx(command_list.Get(), object_index, MAX_CRV_SRV_BUFFER_NUMBER);
 			}
 
-			if (Global::is_enabled_postprocess) {
+			if (flag_postprocess) {
 				set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 									 D3D12_RESOURCE_STATE_PRESENT);
 			}
@@ -1162,12 +1177,14 @@ namespace albedos {
 			assert(SUCCEEDED(hr) && "Command List [Render] Closed");
 		}
 		void populate_command_list_msaa() {
-			HRESULT hr;
+			HRESULT	   hr;
+			const bool flag_postprocess = Global::is_enabled_postprocess;
 
 			set_resource_barrier(buffer_msaa_color_texture.Get(), D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
 								 D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-			const FLOAT clear_color[4] = {0.f, 0.f, 0.f, 1.f};
+			const FLOAT clear_color[4] = {Global::bg_color[0], Global::bg_color[1], Global::bg_color[2],
+										  Global::bg_color[3]};
 			command_list->ClearRenderTargetView(handle_rtv_msaa, clear_color, 0, nullptr);
 			command_list->ClearDepthStencilView(handle_dsv_msaa, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
@@ -1187,14 +1204,25 @@ namespace albedos {
 			set_resource_barrier(buffer_msaa_color_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 								 D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
 
-			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
-								 D3D12_RESOURCE_STATE_RESOLVE_DEST);
+			if (!flag_postprocess) {
+				set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
+									 D3D12_RESOURCE_STATE_RESOLVE_DEST);
 
-			command_list->ResolveSubresource(render_buffers[rtv_index].Get(), 0, buffer_msaa_color_texture.Get(), 0,
-											 DXGI_FORMAT_R8G8B8A8_UNORM);
+				command_list->ResolveSubresource(render_buffers[rtv_index].Get(), 0, buffer_msaa_color_texture.Get(), 0,
+												 DXGI_FORMAT_R8G8B8A8_UNORM);
 
-			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_RESOLVE_DEST,
-								 D3D12_RESOURCE_STATE_PRESENT);
+				set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_RESOLVE_DEST,
+									 D3D12_RESOURCE_STATE_PRESENT);
+			} else {
+				set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_PRESENT,
+									 D3D12_RESOURCE_STATE_RESOLVE_DEST);
+
+				command_list->ResolveSubresource(buffer_render_texture.Get(), 0, buffer_msaa_color_texture.Get(), 0,
+												 DXGI_FORMAT_R8G8B8A8_UNORM);
+
+				set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_RESOLVE_DEST,
+									 D3D12_RESOURCE_STATE_PRESENT);
+			}
 
 			hr = command_list->Close();
 			assert(SUCCEEDED(hr) && "Command List [Render] Closed");
@@ -1266,19 +1294,6 @@ namespace albedos {
 			assert(SUCCEEDED(hr) && "Command List [ImGui] Closed");
 		}
 
-		inline void set_render_objects(std::vector<albedos::Object>& in_objects) {
-			objects = in_objects;
-
-			for (albedos::Object& obj : objects) {
-				obj.set_shadow_buffer(shadow_buffer.Get());
-			}
-		}
-		inline UINT64				 get_num_frames() { return NUM_FRAMES_IN_FLIGHT; }
-		inline ID3D12Device*		 get_device() { return device.Get(); }
-		inline ID3D12DescriptorHeap* get_cbv_srv_heap() { return descriptor_heap_cbv_srv.Get(); }
-		inline ID3D12DescriptorHeap* get_imgui_heap() { return descriptor_heap_imgui.Get(); }
-
-	protected:
 		void get_hardware_adaptor(IDXGIFactory4* pFactory, IDXGIAdapter1** ppAdapter) {
 			*ppAdapter = nullptr;
 			for (UINT adapterIndex = 0;; ++adapterIndex) {
