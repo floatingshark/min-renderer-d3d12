@@ -1,5 +1,5 @@
 Texture2D<float4> RenderedTexture      : register(t0);
-SamplerState Sampler0           : register(s0);
+SamplerState 	  Sampler0             : register(s0);
 
 struct VS_INPUT{
 };
@@ -23,8 +23,15 @@ PS_INPUT VSMain(uint id : SV_VERTEXID){
     return output;
 }
 
-
 float4 PSMain(PS_INPUT input) : SV_TARGET{
-	return RenderedTexture.Sample(Sampler0, input.UV);
-    //return float4(1.0, 0.0, 0.0, 1.0);
+	float2 window_size = (800, 600);
+
+	// Mosaic Effect
+	float block_size = 4;
+	float2 uv = input.UV * window_size;
+	uv /= block_size;
+	uv = floor(uv) * block_size;
+	uv /= window_size;
+
+	return RenderedTexture.Sample(Sampler0, uv);
 }

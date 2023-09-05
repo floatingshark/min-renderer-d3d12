@@ -865,6 +865,9 @@ namespace albedos {
 				execute_command_list(p_command_list);
 			}
 
+			populate_command_list_imgui();
+			execute_command_list(p_command_list);
+
 			hr = swap_chain->Present(1, 0);
 			assert(SUCCEEDED(hr) && "Swapchain Present");
 
@@ -930,9 +933,6 @@ namespace albedos {
 				object.update_draw_directx(command_list.Get(), object_index, MAX_CRV_SRV_BUFFER_NUMBER);
 			}
 
-			command_list->SetDescriptorHeaps(1, descriptor_heap_imgui.GetAddressOf());
-			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), command_list.Get());
-
 			set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 								 D3D12_RESOURCE_STATE_PRESENT);
 			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
@@ -962,6 +962,7 @@ namespace albedos {
 			command_list->SetDescriptorHeaps(1, descriptor_heap_cbv_srv_postprocess.GetAddressOf());
 			D3D12_GPU_DESCRIPTOR_HANDLE cbv_srv_gpu_handle =
 				descriptor_heap_cbv_srv_postprocess->GetGPUDescriptorHandleForHeapStart();
+			UINT cbv_srv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			command_list->SetGraphicsRootDescriptorTable(0, cbv_srv_gpu_handle);
 
 			// Shader Resource View for Render Texture
@@ -973,8 +974,9 @@ namespace albedos {
 			render_texture_desc.Texture2D.PlaneSlice		  = 0;
 			render_texture_desc.Texture2D.ResourceMinLODClamp = 0.0F;
 			render_texture_desc.Shader4ComponentMapping		  = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+			D3D12_CPU_DESCRIPTOR_HANDLE cbv_srv_cpu_handle = descriptor_heap_cbv_srv_postprocess->GetCPUDescriptorHandleForHeapStart();
 			device->CreateShaderResourceView(buffer_render_texture.Get(), &render_texture_desc,
-											 handle_cbv_srv_postprocess);
+											 cbv_srv_cpu_handle);
 
 			command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 			command_list->DrawInstanced(6, 1, 0, 0);
@@ -984,6 +986,25 @@ namespace albedos {
 
 			hr = command_list->Close();
 			assert(SUCCEEDED(hr) && "Command List [Postprocess] Closed");
+		}
+		void populate_command_list_imgui() {
+			HRESULT hr;
+
+			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
+								 D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+			command_list->OMSetRenderTargets(1, &handle_rtv[rtv_index], TRUE, &handle_dsv);
+			command_list->SetGraphicsRootSignature(root_signature.Get());
+			command_list->SetPipelineState(pipeline_state_render.Get());
+
+			command_list->SetDescriptorHeaps(1, descriptor_heap_imgui.GetAddressOf());
+			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), command_list.Get());
+
+			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+								 D3D12_RESOURCE_STATE_PRESENT);
+
+			hr = command_list->Close();
+			assert(SUCCEEDED(hr) && "Command List [ImGui] Closed");
 		}
 
 		inline void set_render_objects(std::vector<albedos::Object>& in_objects) {
