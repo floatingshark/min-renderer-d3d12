@@ -87,7 +87,7 @@ namespace albedos {
 			ImGui::Checkbox("Shadow Mapping", &Global::is_enabled_shadow_mapping);
 			ImGui::SliderFloat("Shadow Bias", &Global::shadow_mapping_bias, 0.f, 0.0002f, "%.6f");
 
-			ImGui::SeparatorText("Anti Arias");
+			ImGui::SeparatorText("Anti-Ariasing");
 			ImGui::Checkbox("MSAA", &Global::is_enabled_msaa);
 
 			ImGui::SeparatorText("Postprocess");

@@ -22,23 +22,23 @@
 int main() {
 	MAIN_LOG("Begin Program");
 
-	std::shared_ptr<albedos::Window> window = std::make_shared<albedos::Window>();
+	std::unique_ptr<albedos::Window> window = std::make_unique<albedos::Window>();
 	MAIN_LOG("Prepared Window");
 
-	std::shared_ptr<albedos::DirectXA> directx = std::make_shared<albedos::DirectXA>(window->get_hwnd());
+	std::unique_ptr<albedos::DirectXA> directx = std::make_unique<albedos::DirectXA>(window->get_hwnd());
 	MAIN_LOG("Prepared DirectX12");
 
-	std::shared_ptr<albedos::Constant> constant = std::make_shared<albedos::Constant>();
+	std::unique_ptr<albedos::Constant> constant = std::make_unique<albedos::Constant>();
 	MAIN_LOG("Prepared Constant Datum");
 
-	std::shared_ptr<albedos::Control> control = std::make_shared<albedos::Control>();
+	std::unique_ptr<albedos::Control> control = std::make_unique<albedos::Control>();
 	MAIN_LOG("Prepared User Control");
 
-	std::shared_ptr<albedos::Scene> scene =
-		std::make_shared<albedos::Scene>(directx->get_device(), directx->get_cbv_srv_heap());
+	std::unique_ptr<albedos::Scene> scene =
+		std::make_unique<albedos::Scene>(directx->get_device(), directx->get_cbv_srv_heap());
 	MAIN_LOG("Prepared Scene Datum");
 
-	std::shared_ptr<albedos::UI> ui = std::make_shared<albedos::UI>();
+	std::unique_ptr<albedos::UI> ui = std::make_unique<albedos::UI>();
 	MAIN_LOG("Prepared UI");
 
 	directx->set_render_objects(scene->objects);
