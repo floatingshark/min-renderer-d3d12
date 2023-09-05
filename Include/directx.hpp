@@ -79,6 +79,15 @@ namespace albedos {
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>	 root_signature_postprocess;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>	 pipeline_state_postprocess;
 
+		// For MSAA
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_rtv_msaa;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_dsv_msaa;
+		Microsoft::WRL::ComPtr<ID3D12Resource>		 buffer_msaa_color_texture;
+		Microsoft::WRL::ComPtr<ID3D12Resource>		 buffer_msaa_depth_texture;
+		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_rtv_msaa;
+		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_dsv_msaa;
+		Microsoft::WRL::ComPtr<ID3D12PipelineState>	 pipeline_state_msaa;
+
 	protected:
 		// Initialize Functions
 		void init_directx() {
@@ -118,6 +127,13 @@ namespace albedos {
 			DIRECTX_LOG("Initialized Root Signature[Postprocess]");
 			init_pipeline_state_postprocess();
 			DIRECTX_LOG("Initialized Pipeline States[Postporcess]");
+
+			init_descriptor_heaps_msaa();
+			DIRECTX_LOG("Initialized Descriptor Heaps[MSAA]");
+			init_msaa_target_view();
+			DIRECTX_LOG("Initialized Resources and Views[MSAA]");
+			init_pipeline_state_msaa();
+			DIRECTX_LOG("Initialized Pipeline States[MSAA]");
 		}
 		void init_viewport() {
 			viewport.TopLeftX = 0.f;
@@ -258,7 +274,7 @@ namespace albedos {
 			hr = device->CreateDescriptorHeap(&cbv_srv_heap_desc, IID_PPV_ARGS(&descriptor_heap_cbv_srv));
 			assert(SUCCEEDED(hr) && "Create CBV SRV UAV Descriptor Heap");
 
-			// Depth Stencil Vies
+			// Depth Stencil
 			D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc;
 			ZeroMemory(&dsv_heap_desc, sizeof(dsv_heap_desc));
 			dsv_heap_desc.NumDescriptors = 1;
@@ -708,7 +724,7 @@ namespace albedos {
 
 			// Create Render Texture Resource
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
-												 D3D12_RESOURCE_STATE_RENDER_TARGET, &clear_value,
+												 D3D12_RESOURCE_STATE_PRESENT, &clear_value,
 												 IID_PPV_ARGS(&buffer_render_texture));
 			DIRECTX_ASSERT(hr, "Create Comitted Resource[Render Texture]");
 
@@ -845,6 +861,198 @@ namespace albedos {
 			hr = device->CreateGraphicsPipelineState(&pipeline_state_desc, IID_PPV_ARGS(&pipeline_state_postprocess));
 			DIRECTX_ASSERT(hr, "Create Graphics Pipeline State[Postprocess]");
 		}
+		// Initialize Functions for MSAA
+		void init_descriptor_heaps_msaa() {
+			HRESULT hr;
+
+			// Render Target
+			D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc;
+			ZeroMemory(&rtv_heap_desc, sizeof(rtv_heap_desc));
+			rtv_heap_desc.NumDescriptors = 1;
+			rtv_heap_desc.Type			 = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+			rtv_heap_desc.Flags			 = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			rtv_heap_desc.NodeMask		 = 0;
+			hr = device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&descriptor_heap_rtv_msaa));
+			assert(SUCCEEDED(hr) && "Create RTV Descriptor Heap[MSAA]");
+
+			D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc;
+			ZeroMemory(&dsv_heap_desc, sizeof(dsv_heap_desc));
+			dsv_heap_desc.NumDescriptors = 1;
+			dsv_heap_desc.Type			 = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+			dsv_heap_desc.Flags			 = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			dsv_heap_desc.NodeMask		 = 0;
+			hr = device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(&descriptor_heap_dsv_msaa));
+			assert(SUCCEEDED(hr) && "Create DSV Descriptor Heap[MSAA]");
+		}
+		void init_msaa_target_view() {
+			HRESULT hr;
+
+			D3D12_HEAP_PROPERTIES heap_properties{};
+			D3D12_RESOURCE_DESC	  resource_desc{};
+			D3D12_CLEAR_VALUE	  clear_value{};
+			heap_properties.Type				 = D3D12_HEAP_TYPE_DEFAULT;
+			heap_properties.CPUPageProperty		 = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+			heap_properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+			heap_properties.CreationNodeMask	 = 0;
+			heap_properties.VisibleNodeMask		 = 0;
+
+			resource_desc.Dimension			 = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+			resource_desc.Width				 = WIDTH;
+			resource_desc.Height			 = HEIGHT;
+			resource_desc.DepthOrArraySize	 = 1;
+			resource_desc.MipLevels			 = 1;
+			resource_desc.Format			 = DXGI_FORMAT_R8G8B8A8_UNORM;
+			resource_desc.Layout			 = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+			resource_desc.SampleDesc.Count	 = 4;
+			resource_desc.SampleDesc.Quality = 0;
+			resource_desc.Flags				 = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+			clear_value.Format	 = DXGI_FORMAT_R8G8B8A8_UNORM;
+			clear_value.Color[0] = 0.f;
+			clear_value.Color[1] = 0.f;
+			clear_value.Color[2] = 0.f;
+			clear_value.Color[3] = 1.f;
+
+			// Create Render Texture Resource
+			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
+												 D3D12_RESOURCE_STATE_RESOLVE_SOURCE, &clear_value,
+												 IID_PPV_ARGS(&buffer_msaa_color_texture));
+			DIRECTX_ASSERT(hr, "Create Comitted Resource[MSAA Color Texture]");
+
+			resource_desc.Format = DXGI_FORMAT_R32_TYPELESS;
+			resource_desc.Flags	 = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+
+			D3D12_CLEAR_VALUE clear_value_depth{};
+			clear_value_depth.Format			   = DXGI_FORMAT_D32_FLOAT;
+			clear_value_depth.DepthStencil.Depth   = 1.0f;
+			clear_value_depth.DepthStencil.Stencil = 0;
+
+			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
+												 D3D12_RESOURCE_STATE_DEPTH_WRITE, &clear_value_depth,
+												 IID_PPV_ARGS(&buffer_msaa_depth_texture));
+			DIRECTX_ASSERT(hr, "Create Comitted Resource[MSAA Depth Texture]");
+
+			D3D12_RENDER_TARGET_VIEW_DESC rtv_desc_msaa{};
+			rtv_desc_msaa.Format		= DXGI_FORMAT_R8G8B8A8_UNORM;
+			rtv_desc_msaa.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+
+			D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc_msaa{};
+			dsv_desc_msaa.Format		= DXGI_FORMAT_D32_FLOAT;
+			dsv_desc_msaa.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
+
+			handle_rtv_msaa = descriptor_heap_rtv_msaa->GetCPUDescriptorHandleForHeapStart();
+			device->CreateRenderTargetView(buffer_msaa_color_texture.Get(), &rtv_desc_msaa, handle_rtv_msaa);
+			handle_dsv_msaa = descriptor_heap_dsv_msaa->GetCPUDescriptorHandleForHeapStart();
+			device->CreateDepthStencilView(buffer_msaa_depth_texture.Get(), &dsv_desc_msaa, handle_dsv_msaa);
+		}
+		void init_pipeline_state_msaa() {
+			HRESULT hr;
+
+			UINT							 compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+			Microsoft::WRL::ComPtr<ID3DBlob> vertex_shader;
+			Microsoft::WRL::ComPtr<ID3DBlob> pixel_shader;
+
+			// Stop When Shader Compile Error
+			hr = D3DCompileFromFile(SHADER_NAME, nullptr, nullptr, "VSMain", "vs_5_0", compile_flags, 0, &vertex_shader,
+									nullptr);
+			DIRECTX_ASSERT(hr, "Compile Vertex Shader");
+			hr = D3DCompileFromFile(SHADER_NAME, nullptr, nullptr, "PSMain", "ps_5_0", compile_flags, 0, &pixel_shader,
+									nullptr);
+			DIRECTX_ASSERT(hr, "Compile Pixel Shader");
+
+			// Vertex Layout
+			D3D12_INPUT_ELEMENT_DESC desc_input_elements[] = {
+				{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+				{"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+				{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+				{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 40, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+			};
+
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC pipline_state_desc;
+			ZeroMemory(&pipline_state_desc, sizeof(pipline_state_desc));
+
+			// Shader Settings
+			pipline_state_desc.VS.pShaderBytecode = vertex_shader->GetBufferPointer();
+			pipline_state_desc.VS.BytecodeLength  = vertex_shader->GetBufferSize();
+			pipline_state_desc.HS.pShaderBytecode = nullptr;
+			pipline_state_desc.HS.BytecodeLength  = 0;
+			pipline_state_desc.DS.pShaderBytecode = nullptr;
+			pipline_state_desc.DS.BytecodeLength  = 0;
+			pipline_state_desc.GS.pShaderBytecode = nullptr;
+			pipline_state_desc.GS.BytecodeLength  = 0;
+			pipline_state_desc.PS.pShaderBytecode = pixel_shader->GetBufferPointer();
+			pipline_state_desc.PS.BytecodeLength  = pixel_shader->GetBufferSize();
+
+			// Input Layout Settings
+			pipline_state_desc.InputLayout.pInputElementDescs = desc_input_elements;
+			pipline_state_desc.InputLayout.NumElements		  = _countof(desc_input_elements);
+
+			// Sample Settings
+			pipline_state_desc.SampleDesc.Count	  = 4;
+			pipline_state_desc.SampleDesc.Quality = 0;
+			pipline_state_desc.SampleMask		  = UINT_MAX;
+
+			// Render Target Settings
+			pipline_state_desc.NumRenderTargets = 1;
+			pipline_state_desc.RTVFormats[0]	= DXGI_FORMAT_R8G8B8A8_UNORM;
+
+			// Primitive Topology Type Settings
+			pipline_state_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+			// Root Signature
+			pipline_state_desc.pRootSignature = root_signature.Get();
+
+			// Rasterizer State Settings
+			pipline_state_desc.RasterizerState.CullMode				 = D3D12_CULL_MODE_NONE;
+			pipline_state_desc.RasterizerState.FillMode				 = D3D12_FILL_MODE_SOLID;
+			pipline_state_desc.RasterizerState.FrontCounterClockwise = FALSE;
+			pipline_state_desc.RasterizerState.DepthBias			 = 0;
+			pipline_state_desc.RasterizerState.DepthBiasClamp		 = 0;
+			pipline_state_desc.RasterizerState.SlopeScaledDepthBias	 = 0;
+			pipline_state_desc.RasterizerState.DepthClipEnable		 = TRUE;
+			pipline_state_desc.RasterizerState.ConservativeRaster	 = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+			pipline_state_desc.RasterizerState.AntialiasedLineEnable = FALSE;
+			pipline_state_desc.RasterizerState.MultisampleEnable	 = FALSE;
+
+			// Blend State Settings
+			for (int i = 0; i < static_cast<int>(_countof(pipline_state_desc.BlendState.RenderTarget)); ++i) {
+				pipline_state_desc.BlendState.RenderTarget[i].BlendEnable			= FALSE;
+				pipline_state_desc.BlendState.RenderTarget[i].SrcBlend				= D3D12_BLEND_ONE;
+				pipline_state_desc.BlendState.RenderTarget[i].DestBlend				= D3D12_BLEND_ZERO;
+				pipline_state_desc.BlendState.RenderTarget[i].BlendOp				= D3D12_BLEND_OP_ADD;
+				pipline_state_desc.BlendState.RenderTarget[i].SrcBlendAlpha			= D3D12_BLEND_ONE;
+				pipline_state_desc.BlendState.RenderTarget[i].DestBlendAlpha		= D3D12_BLEND_ZERO;
+				pipline_state_desc.BlendState.RenderTarget[i].BlendOpAlpha			= D3D12_BLEND_OP_ADD;
+				pipline_state_desc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+				pipline_state_desc.BlendState.RenderTarget[i].LogicOpEnable			= FALSE;
+				pipline_state_desc.BlendState.RenderTarget[i].LogicOp				= D3D12_LOGIC_OP_CLEAR;
+			}
+			pipline_state_desc.BlendState.AlphaToCoverageEnable	 = FALSE;
+			pipline_state_desc.BlendState.IndependentBlendEnable = FALSE;
+
+			// Depth Stencil State Settings
+			pipline_state_desc.DepthStencilState.DepthEnable	  = TRUE; // Enable Depth Test
+			pipline_state_desc.DepthStencilState.DepthFunc		  = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+			pipline_state_desc.DepthStencilState.DepthWriteMask	  = D3D12_DEPTH_WRITE_MASK_ALL;
+			pipline_state_desc.DepthStencilState.StencilEnable	  = FALSE; // Disable Stencil Test
+			pipline_state_desc.DepthStencilState.StencilReadMask  = D3D12_DEFAULT_STENCIL_READ_MASK;
+			pipline_state_desc.DepthStencilState.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+
+			pipline_state_desc.DepthStencilState.FrontFace.StencilFailOp	  = D3D12_STENCIL_OP_KEEP;
+			pipline_state_desc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+			pipline_state_desc.DepthStencilState.FrontFace.StencilPassOp	  = D3D12_STENCIL_OP_KEEP;
+			pipline_state_desc.DepthStencilState.FrontFace.StencilFunc		  = D3D12_COMPARISON_FUNC_ALWAYS;
+
+			pipline_state_desc.DepthStencilState.BackFace.StencilFailOp		 = D3D12_STENCIL_OP_KEEP;
+			pipline_state_desc.DepthStencilState.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+			pipline_state_desc.DepthStencilState.BackFace.StencilPassOp		 = D3D12_STENCIL_OP_KEEP;
+			pipline_state_desc.DepthStencilState.BackFace.StencilFunc		 = D3D12_COMPARISON_FUNC_ALWAYS;
+
+			pipline_state_desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+
+			hr = device->CreateGraphicsPipelineState(&pipline_state_desc, IID_PPV_ARGS(&pipeline_state_msaa));
+			assert(SUCCEEDED(hr) && "Create Graphics Pipeline State[MSAA]");
+		}
 
 	public:
 		void render() {
@@ -857,11 +1065,17 @@ namespace albedos {
 				execute_command_list(p_command_list);
 			}
 
-			populate_command_list_render();
-			execute_command_list(p_command_list);
+			if (!Global::is_enabled_msaa) {
+				populate_command_list_render();
+				execute_command_list(p_command_list);
 
-			if (Global::is_enabled_postprocess) {
-				populate_command_list_postprocess();
+				if (Global::is_enabled_postprocess) {
+					populate_command_list_postprocess();
+					execute_command_list(p_command_list);
+				}
+			} else {
+
+				populate_command_list_msaa();
 				execute_command_list(p_command_list);
 			}
 
@@ -905,16 +1119,20 @@ namespace albedos {
 
 			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
 								 D3D12_RESOURCE_STATE_RENDER_TARGET);
-			set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_PRESENT,
-								 D3D12_RESOURCE_STATE_RENDER_TARGET);
+			if (Global::is_enabled_postprocess) {
+				set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_PRESENT,
+									 D3D12_RESOURCE_STATE_RENDER_TARGET);
+			}
 
 			const FLOAT clear_color[4] = {Global::bg_color[0], Global::bg_color[1], Global::bg_color[2],
 										  Global::bg_color[3]};
 			command_list->ClearRenderTargetView(handle_rtv[rtv_index], clear_color, 0, nullptr);
 			command_list->ClearDepthStencilView(handle_dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-			const FLOAT clear_color_render_texture[4] = {0.f, 0.f, 0.f, 1.f};
-			command_list->ClearRenderTargetView(handle_rtv_render_texture, clear_color_render_texture, 0, nullptr);
+			if (Global::is_enabled_postprocess) {
+				const FLOAT clear_color_render_texture[4] = {0.f, 0.f, 0.f, 1.f};
+				command_list->ClearRenderTargetView(handle_rtv_render_texture, clear_color_render_texture, 0, nullptr);
+			}
 
 			command_list->RSSetViewports(1, &viewport);
 			command_list->RSSetScissorRects(1, &rect_scissor);
@@ -933,9 +1151,49 @@ namespace albedos {
 				object.update_draw_directx(command_list.Get(), object_index, MAX_CRV_SRV_BUFFER_NUMBER);
 			}
 
-			set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
-								 D3D12_RESOURCE_STATE_PRESENT);
+			if (Global::is_enabled_postprocess) {
+				set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+									 D3D12_RESOURCE_STATE_PRESENT);
+			}
 			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+								 D3D12_RESOURCE_STATE_PRESENT);
+
+			hr = command_list->Close();
+			assert(SUCCEEDED(hr) && "Command List [Render] Closed");
+		}
+		void populate_command_list_msaa() {
+			HRESULT hr;
+
+			set_resource_barrier(buffer_msaa_color_texture.Get(), D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+								 D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+			const FLOAT clear_color[4] = {0.f, 0.f, 0.f, 1.f};
+			command_list->ClearRenderTargetView(handle_rtv_msaa, clear_color, 0, nullptr);
+			command_list->ClearDepthStencilView(handle_dsv_msaa, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+
+			command_list->RSSetViewports(1, &viewport);
+			command_list->RSSetScissorRects(1, &rect_scissor);
+			command_list->OMSetRenderTargets(1, &handle_rtv_msaa, TRUE, &handle_dsv_msaa);
+
+			command_list->SetGraphicsRootSignature(root_signature.Get());
+			command_list->SetPipelineState(pipeline_state_msaa.Get());
+
+			for (int object_index = 0; object_index < static_cast<int>(objects.size()); object_index++) {
+				set_constant_root_table_by_object(object_index);
+				albedos::Object& object = objects[object_index];
+				object.update_draw_directx(command_list.Get(), object_index, MAX_CRV_SRV_BUFFER_NUMBER);
+			}
+
+			set_resource_barrier(buffer_msaa_color_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+								 D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
+
+			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
+								 D3D12_RESOURCE_STATE_RESOLVE_DEST);
+
+			command_list->ResolveSubresource(render_buffers[rtv_index].Get(), 0, buffer_msaa_color_texture.Get(), 0,
+											 DXGI_FORMAT_R8G8B8A8_UNORM);
+
+			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_RESOLVE_DEST,
 								 D3D12_RESOURCE_STATE_PRESENT);
 
 			hr = command_list->Close();
@@ -962,7 +1220,8 @@ namespace albedos {
 			command_list->SetDescriptorHeaps(1, descriptor_heap_cbv_srv_postprocess.GetAddressOf());
 			D3D12_GPU_DESCRIPTOR_HANDLE cbv_srv_gpu_handle =
 				descriptor_heap_cbv_srv_postprocess->GetGPUDescriptorHandleForHeapStart();
-			UINT cbv_srv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			/*UINT cbv_srv_descriptor_size =
+				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);*/
 			command_list->SetGraphicsRootDescriptorTable(0, cbv_srv_gpu_handle);
 
 			// Shader Resource View for Render Texture
@@ -974,9 +1233,9 @@ namespace albedos {
 			render_texture_desc.Texture2D.PlaneSlice		  = 0;
 			render_texture_desc.Texture2D.ResourceMinLODClamp = 0.0F;
 			render_texture_desc.Shader4ComponentMapping		  = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			D3D12_CPU_DESCRIPTOR_HANDLE cbv_srv_cpu_handle = descriptor_heap_cbv_srv_postprocess->GetCPUDescriptorHandleForHeapStart();
-			device->CreateShaderResourceView(buffer_render_texture.Get(), &render_texture_desc,
-											 cbv_srv_cpu_handle);
+			D3D12_CPU_DESCRIPTOR_HANDLE cbv_srv_cpu_handle =
+				descriptor_heap_cbv_srv_postprocess->GetCPUDescriptorHandleForHeapStart();
+			device->CreateShaderResourceView(buffer_render_texture.Get(), &render_texture_desc, cbv_srv_cpu_handle);
 
 			command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 			command_list->DrawInstanced(6, 1, 0, 0);

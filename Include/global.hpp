@@ -17,6 +17,7 @@ namespace albedos {
 		static bool	 is_enabled_shadow_mapping;
 		static float shadow_mapping_bias;
 
+		static bool is_enabled_msaa;
 		static bool is_enabled_postprocess;
 	};
 
@@ -31,5 +32,6 @@ namespace albedos {
 	bool  Global::is_enabled_shadow_mapping = true;
 	float Global::shadow_mapping_bias		= 0.00015f;
 
+	bool Global::is_enabled_msaa = true;
 	bool Global::is_enabled_postprocess = false;
 } // namespace albedos
