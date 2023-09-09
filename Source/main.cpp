@@ -1,6 +1,6 @@
 #define _USE_MATH_DEFINES
 #define _CRT_SECURE_NO_WARNINGS
-#define MAIN_LOG(log_msg) std::cout << "[MAIN]" << log_msg << std::endl;
+#define MAIN_LOG(log_msg) std::cout << "[Main]" << log_msg << std::endl;
 // #undef _DEBUG
 
 #include "constant.hpp"

@@ -1,13 +1,14 @@
 #pragma once
 #include <cassert>
 #include <d3d12.h>
+#include <fstream>
 #include <iostream>
 #include <vector>
 
 namespace albedos {
 	class Texture {
 	public:
-		enum struct Type { Monochrome, CheckBoard, Max };
+		enum struct Type { Monochrome, CheckerBoard, Image, Max };
 
 		static std::vector<byte> create_monochromatic(int tex_size, byte color[4]) {
 			std::vector<byte> ret;
@@ -39,6 +40,46 @@ namespace albedos {
 				}
 			}
 			return ret;
+		}
+		static void read_bmp_file(const char* file_name, std::vector<byte>& out_texture) {
+
+			int			  i;
+			FILE*		  file = fopen(file_name, "rb");
+			unsigned char info[54];
+
+			if (!file) {
+				std::cout << "[Texture]Read Error" << file_name << std::endl;
+				return;
+			}
+
+			// read the 54-byte header
+			fread(info, sizeof(unsigned char), 54, file);
+
+			// extract image height and width from header
+			int width  = *(int*)&info[18];
+			int height = *(int*)&info[22];
+
+			std::cout << "[Texture]Name  : " << file_name << std::endl;
+			std::cout << "[Texture]Width : " << width << std::endl;
+			std::cout << "[Texture]Height: " << height << std::endl;
+
+			// allocate 3 bytes per pixel
+			int			   size = 3 * width * height;
+			unsigned char* data = new unsigned char[size];
+
+			// read the rest of the data at once
+			fread(data, sizeof(unsigned char), size, file);
+			fclose(file);
+
+			out_texture.clear();
+
+			for (i = 0; i < size; i += 3) {
+				// flip the order of every 3 bytes
+				out_texture.push_back(data[i]);
+				out_texture.push_back(data[i + 1]);
+				out_texture.push_back(data[i + 2]);
+				out_texture.push_back(255);
+			}
 		}
 	};
 } // namespace albedos

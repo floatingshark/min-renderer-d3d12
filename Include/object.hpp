@@ -1,4 +1,5 @@
 #pragma once
+#include "constant.hpp"
 #include "shape.hpp"
 #include "texture.hpp"
 #include <cassert>
@@ -42,6 +43,7 @@ namespace albedos {
 		glm::vec3	  scale			   = {1.f, 1.f, 1.f};
 		Texture::Type texture_type	   = Texture::Type::Monochrome;
 		float		  texture_color[4] = {1.f, 1.f, 1.f, 1.f};
+		std::string	  texture_file_name	   = "";
 		float		  specular_power   = 100.f;
 
 	public:
@@ -186,7 +188,7 @@ namespace albedos {
 			HRESULT hr;
 			void*	Mapped;
 
-			//calculate_scene(scene);
+			// calculate_scene(scene);
 
 			hr = constant_buffer[0]->Map(0, nullptr, &Mapped);
 			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Scene]");
@@ -232,7 +234,7 @@ namespace albedos {
 		void set_texture_data(Texture::Type in_type) {
 			texture_data.clear();
 			texture_type = in_type;
-			
+
 			HRESULT	  hr;
 			const int checker_num = 8;
 			byte	  color[4]	  = {(byte)(texture_color[0] * 255.f), (byte)(texture_color[1] * 255.f),
@@ -242,8 +244,11 @@ namespace albedos {
 			case Texture::Type::Monochrome:
 				texture_data = Texture::create_monochromatic(TEXTURE_SIZE, color);
 				break;
-			case Texture::Type::CheckBoard:
+			case Texture::Type::CheckerBoard:
 				texture_data = Texture::create_checker_board(TEXTURE_SIZE, color, checker_num);
+				break;
+			case Texture::Type::Image:
+				Texture::read_bmp_file(texture_file_name.c_str(), texture_data);
 				break;
 			default:
 				break;
@@ -256,7 +261,7 @@ namespace albedos {
 		}
 
 	protected:
-		//void calculate_scene(Constant::Scene& scene) {}
+		// void calculate_scene(Constant::Scene& scene) {}
 		void calculate_local(Constant::Local& local) {
 			local.world			 = glm::translate(local.world, position);
 			local.world			 = glm::rotate(local.world, rotation[0], {1.f, 0.f, 0.f});

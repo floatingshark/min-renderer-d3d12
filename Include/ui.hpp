@@ -139,7 +139,7 @@ namespace albedos {
 			ImGui::DragFloat3("Scl", (float*)&object.scale, 0.1f, -10.0f, 10.0f, "%.2f");
 
 			ImGui::SeparatorText("Material");
-			const char* tex_items[]		 = {"Mono", "Checker Board"};
+			const char* tex_items[]		 = {"Mono", "Checker Board", "Image"};
 			int			tex_item_current = (int)object.texture_type;
 			if (ImGui::Combo("Tex", &tex_item_current, tex_items, IM_ARRAYSIZE(tex_items))) {
 				const Texture::Type texture_type = (Texture::Type)tex_item_current;

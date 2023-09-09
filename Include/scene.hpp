@@ -15,7 +15,7 @@ namespace albedos {
 		ID3D12DescriptorHeap*		 heap;
 		std::vector<albedos::Object> objects;
 
-		/** 
+		/**
 		 * Scene 1
 		 * 1 Torus and 1 Plane
 		 */
@@ -28,12 +28,13 @@ namespace albedos {
 			object_1.rotation = {0.3f, 0.2f, 0.f};
 			object_1.set_vertex_data(albedos::Shape::Type::Torus);
 
-			object_2.name			  = "Default Plane";
-			object_2.scale			  = {10.f, 10.f, 1.f};
-			object_2.texture_color[0] = 0.7f;
-			object_2.texture_color[1] = 0.7f;
-			object_2.texture_color[2] = 0.7f;
-			object_2.set_texture_data(albedos::Texture::Type::CheckBoard);
+			object_2.name			   = "Default Plane";
+			object_2.scale			   = {10.f, 10.f, 1.f};
+			object_2.texture_color[0]  = 0.7f;
+			object_2.texture_color[1]  = 0.7f;
+			object_2.texture_color[2]  = 0.7f;
+			object_2.texture_file_name = "Resource/polystyrene_diff_1k.bmp";
+			object_2.set_texture_data(albedos::Texture::Type::CheckerBoard);
 
 			objects = {object_1, object_2};
 		}
