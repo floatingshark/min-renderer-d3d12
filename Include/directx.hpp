@@ -31,19 +31,22 @@ namespace albedos {
 		static const UINT NUM_FRAMES_IN_FLIGHT		= 2;
 		static const bool USE_WARP_DEVICE			= false;
 		static const UINT MAX_OBJECT_SIZE			= 5;
-		static const UINT MAX_CRV_SRV_BUFFER_NUMBER = 4;
+		static const UINT MAX_CRV_SRV_BUFFER_NUMBER = 5;
 		const wchar_t*	  SHADER_NAME				= L"./Source/Shader/PhongShaders.hlsl";
 		const wchar_t*	  SHADER_NAME_POSTPROCESS	= L"./Source/Shader/PostprocessShaders.hlsl";
+		const wchar_t*	  SHADER_NAME_SKYDOME		= L"./Source/Shader/SkydomeShaders.hlsl";
 
 	protected:
-		HWND						 hwnd;
+		HWND		   hwnd;
+		UINT64		   frame_number = 1;
+		UINT		   rtv_index	= 0;
+		D3D12_VIEWPORT viewport;
+		D3D12_RECT	   rect_scissor;
+		D3D12_VIEWPORT viewport_shadow;
+		D3D12_RECT	   rect_scissor_shadow;
+
 		std::vector<albedos::Object> objects;
-		UINT64						 frame_number = 1;
-		UINT						 rtv_index	  = 0;
-		D3D12_VIEWPORT				 viewport;
-		D3D12_RECT					 rect_scissor;
-		D3D12_VIEWPORT				 viewport_shadow;
-		D3D12_RECT					 rect_scissor_shadow;
+		albedos::Object*			 skydome;
 
 		Microsoft::WRL::ComPtr<IDXGIFactory4>			  factory;
 		Microsoft::WRL::ComPtr<ID3D12Device>			  device;
@@ -87,6 +90,9 @@ namespace albedos {
 		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_rtv_msaa;
 		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_dsv_msaa;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>	 pipeline_state_msaa;
+
+		// Miscs
+		Microsoft::WRL::ComPtr<ID3D12PipelineState> pipeline_state_skydome;
 
 	protected:
 		// Initialize DirectX12 Functions
@@ -134,6 +140,9 @@ namespace albedos {
 			DIRECTX_LOG("Initialized Resources and Target Views[MSAA]");
 			init_pipeline_state_msaa();
 			DIRECTX_LOG("Initialized Pipeline States[MSAA]");
+
+			init_pipeline_state_skydome();
+			DIRECTX_LOG("Initialized Pipeline States[Skydome]");
 		}
 		void init_viewport() {
 			viewport.TopLeftX = 0.f;
@@ -379,7 +388,7 @@ namespace albedos {
 			ranges[0].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 			ranges[1].RangeType							= D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-			ranges[1].NumDescriptors					= 2;
+			ranges[1].NumDescriptors					= 3;
 			ranges[1].BaseShaderRegister				= 0;
 			ranges[1].RegisterSpace						= 0;
 			ranges[1].OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
@@ -1054,6 +1063,114 @@ namespace albedos {
 			hr = device->CreateGraphicsPipelineState(&pipline_state_desc, IID_PPV_ARGS(&pipeline_state_msaa));
 			assert(SUCCEEDED(hr) && "Create Graphics Pipeline State[MSAA]");
 		}
+		// Initialize Functions for Skydome
+		void init_pipeline_state_skydome() {
+			HRESULT hr;
+
+			UINT							 compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+			Microsoft::WRL::ComPtr<ID3DBlob> vertex_shader;
+			Microsoft::WRL::ComPtr<ID3DBlob> pixel_shader;
+
+			// Stop When Shader Compile Error
+			hr = D3DCompileFromFile(SHADER_NAME_SKYDOME, nullptr, nullptr, "VSMain", "vs_5_0", compile_flags, 0,
+									&vertex_shader, nullptr);
+			DIRECTX_ASSERT(hr, "Compile Vertex Shader[Skydome]");
+			hr = D3DCompileFromFile(SHADER_NAME_SKYDOME, nullptr, nullptr, "PSMain", "ps_5_0", compile_flags, 0,
+									&pixel_shader, nullptr);
+			DIRECTX_ASSERT(hr, "Compile Pixel Shader[Skydome]");
+
+			// Vertex Layout
+			D3D12_INPUT_ELEMENT_DESC desc_input_elements[] = {
+				{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+				{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+
+			};
+
+			D3D12_GRAPHICS_PIPELINE_STATE_DESC pipline_state_desc;
+			ZeroMemory(&pipline_state_desc, sizeof(pipline_state_desc));
+
+			// Shader Settings
+			pipline_state_desc.VS.pShaderBytecode = vertex_shader->GetBufferPointer();
+			pipline_state_desc.VS.BytecodeLength  = vertex_shader->GetBufferSize();
+			pipline_state_desc.HS.pShaderBytecode = nullptr;
+			pipline_state_desc.HS.BytecodeLength  = 0;
+			pipline_state_desc.DS.pShaderBytecode = nullptr;
+			pipline_state_desc.DS.BytecodeLength  = 0;
+			pipline_state_desc.GS.pShaderBytecode = nullptr;
+			pipline_state_desc.GS.BytecodeLength  = 0;
+			pipline_state_desc.PS.pShaderBytecode = pixel_shader->GetBufferPointer();
+			pipline_state_desc.PS.BytecodeLength  = pixel_shader->GetBufferSize();
+
+			// Input Layout Settings
+			pipline_state_desc.InputLayout.pInputElementDescs = desc_input_elements;
+			pipline_state_desc.InputLayout.NumElements		  = _countof(desc_input_elements);
+
+			// Sample Settings
+			pipline_state_desc.SampleDesc.Count	  = 4;
+			pipline_state_desc.SampleDesc.Quality = 0;
+			pipline_state_desc.SampleMask		  = UINT_MAX;
+
+			// Render Target Settings
+			pipline_state_desc.NumRenderTargets = 1;
+			pipline_state_desc.RTVFormats[0]	= DXGI_FORMAT_R8G8B8A8_UNORM;
+
+			// Primitive Topology Type Settings
+			pipline_state_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+			// Root Signature
+			pipline_state_desc.pRootSignature = root_signature.Get();
+
+			// Rasterizer State Settings
+			pipline_state_desc.RasterizerState.CullMode				 = D3D12_CULL_MODE_NONE;
+			pipline_state_desc.RasterizerState.FillMode				 = D3D12_FILL_MODE_SOLID;
+			pipline_state_desc.RasterizerState.FrontCounterClockwise = FALSE;
+			pipline_state_desc.RasterizerState.DepthBias			 = 0;
+			pipline_state_desc.RasterizerState.DepthBiasClamp		 = 0;
+			pipline_state_desc.RasterizerState.SlopeScaledDepthBias	 = 0;
+			pipline_state_desc.RasterizerState.DepthClipEnable		 = TRUE;
+			pipline_state_desc.RasterizerState.ConservativeRaster	 = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+			pipline_state_desc.RasterizerState.AntialiasedLineEnable = FALSE;
+			pipline_state_desc.RasterizerState.MultisampleEnable	 = FALSE;
+
+			// Blend State Settings
+			for (int i = 0; i < static_cast<int>(_countof(pipline_state_desc.BlendState.RenderTarget)); ++i) {
+				pipline_state_desc.BlendState.RenderTarget[i].BlendEnable			= FALSE;
+				pipline_state_desc.BlendState.RenderTarget[i].SrcBlend				= D3D12_BLEND_ONE;
+				pipline_state_desc.BlendState.RenderTarget[i].DestBlend				= D3D12_BLEND_ZERO;
+				pipline_state_desc.BlendState.RenderTarget[i].BlendOp				= D3D12_BLEND_OP_ADD;
+				pipline_state_desc.BlendState.RenderTarget[i].SrcBlendAlpha			= D3D12_BLEND_ONE;
+				pipline_state_desc.BlendState.RenderTarget[i].DestBlendAlpha		= D3D12_BLEND_ZERO;
+				pipline_state_desc.BlendState.RenderTarget[i].BlendOpAlpha			= D3D12_BLEND_OP_ADD;
+				pipline_state_desc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+				pipline_state_desc.BlendState.RenderTarget[i].LogicOpEnable			= FALSE;
+				pipline_state_desc.BlendState.RenderTarget[i].LogicOp				= D3D12_LOGIC_OP_CLEAR;
+			}
+			pipline_state_desc.BlendState.AlphaToCoverageEnable	 = FALSE;
+			pipline_state_desc.BlendState.IndependentBlendEnable = FALSE;
+
+			// Depth Stencil State Settings
+			pipline_state_desc.DepthStencilState.DepthEnable	  = TRUE; // Enable Depth Test
+			pipline_state_desc.DepthStencilState.DepthFunc		  = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+			pipline_state_desc.DepthStencilState.DepthWriteMask	  = D3D12_DEPTH_WRITE_MASK_ALL;
+			pipline_state_desc.DepthStencilState.StencilEnable	  = FALSE; // Disable Stencil Test
+			pipline_state_desc.DepthStencilState.StencilReadMask  = D3D12_DEFAULT_STENCIL_READ_MASK;
+			pipline_state_desc.DepthStencilState.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
+
+			pipline_state_desc.DepthStencilState.FrontFace.StencilFailOp	  = D3D12_STENCIL_OP_KEEP;
+			pipline_state_desc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+			pipline_state_desc.DepthStencilState.FrontFace.StencilPassOp	  = D3D12_STENCIL_OP_KEEP;
+			pipline_state_desc.DepthStencilState.FrontFace.StencilFunc		  = D3D12_COMPARISON_FUNC_ALWAYS;
+
+			pipline_state_desc.DepthStencilState.BackFace.StencilFailOp		 = D3D12_STENCIL_OP_KEEP;
+			pipline_state_desc.DepthStencilState.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+			pipline_state_desc.DepthStencilState.BackFace.StencilPassOp		 = D3D12_STENCIL_OP_KEEP;
+			pipline_state_desc.DepthStencilState.BackFace.StencilFunc		 = D3D12_COMPARISON_FUNC_ALWAYS;
+
+			pipline_state_desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+
+			hr = device->CreateGraphicsPipelineState(&pipline_state_desc, IID_PPV_ARGS(&pipeline_state_skydome));
+			assert(SUCCEEDED(hr) && "Create Graphics Pipeline State");
+		}
 
 	public:
 		void render() {
@@ -1095,6 +1212,7 @@ namespace albedos {
 				obj.set_shadow_buffer(shadow_buffer.Get());
 			}
 		}
+		inline void					 set_render_skydome(albedos::Object* in_object) { skydome = in_object; }
 		inline UINT64				 get_num_frames() { return NUM_FRAMES_IN_FLIGHT; }
 		inline ID3D12Device*		 get_device() { return device.Get(); }
 		inline ID3D12DescriptorHeap* get_cbv_srv_heap() { return descriptor_heap_cbv_srv.Get(); }
@@ -1161,11 +1279,19 @@ namespace albedos {
 			command_list->SetGraphicsRootSignature(root_signature.Get());
 			command_list->SetPipelineState(pipeline_state_render.Get());
 
-			for (int object_index = 0; object_index < static_cast<int>(objects.size()); object_index++) {
-				set_constant_root_table_by_object(object_index);
-				albedos::Object& object = objects[object_index];
-				object.update_draw_directx(command_list.Get(), object_index, MAX_CRV_SRV_BUFFER_NUMBER);
+			int index_object = 0;
+			for (albedos::Object& object : objects) {
+				set_constant_root_table_by_object(index_object);
+				object.update_draw_directx(command_list.Get(), index_object, MAX_CRV_SRV_BUFFER_NUMBER);
+				index_object++;
 			}
+
+			if (skydome) {
+				command_list->SetPipelineState(pipeline_state_skydome.Get());
+				set_constant_root_table_by_object(index_object);
+				skydome->update_draw_directx(command_list.Get(), index_object, MAX_CRV_SRV_BUFFER_NUMBER);
+			}
+			index_object++;
 
 			if (flag_postprocess) {
 				set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
@@ -1196,11 +1322,19 @@ namespace albedos {
 			command_list->SetGraphicsRootSignature(root_signature.Get());
 			command_list->SetPipelineState(pipeline_state_msaa.Get());
 
-			for (int object_index = 0; object_index < static_cast<int>(objects.size()); object_index++) {
-				set_constant_root_table_by_object(object_index);
-				albedos::Object& object = objects[object_index];
-				object.update_draw_directx(command_list.Get(), object_index, MAX_CRV_SRV_BUFFER_NUMBER);
+			int index_object = 0;
+			for (albedos::Object& object : objects) {
+				set_constant_root_table_by_object(index_object);
+				object.update_draw_directx(command_list.Get(), index_object, MAX_CRV_SRV_BUFFER_NUMBER);
+				index_object++;
 			}
+
+			if (skydome) {
+				command_list->SetPipelineState(pipeline_state_skydome.Get());
+				set_constant_root_table_by_object(index_object);
+				skydome->update_draw_directx(command_list.Get(), index_object, MAX_CRV_SRV_BUFFER_NUMBER);
+			}
+			index_object++;
 
 			set_resource_barrier(buffer_msaa_color_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 								 D3D12_RESOURCE_STATE_RESOLVE_SOURCE);

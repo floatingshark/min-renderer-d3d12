@@ -48,7 +48,7 @@ namespace albedos {
 			unsigned char info[54];
 
 			if (!file) {
-				std::cout << "[Texture]Read Error" << file_name << std::endl;
+				std::cout << "[Texture]Read Error : " << file_name << std::endl;
 				return;
 			}
 
@@ -79,6 +79,58 @@ namespace albedos {
 				out_texture.push_back(data[i + 1]);
 				out_texture.push_back(data[i + 2]);
 				out_texture.push_back(255);
+			}
+		}
+		static void read_bmp_cube_file(const char* file_name, std::vector<std::vector<byte>>& out_cubes,
+									   const int texture_size) {
+
+			int			  i;
+			FILE*		  file = fopen(file_name, "rb");
+			unsigned char info[54];
+
+			if (!file) {
+				std::cout << "[Texture]Read Error : " << file_name << std::endl;
+				return;
+			}
+
+			// read the 54-byte header
+			fread(info, sizeof(unsigned char), 54, file);
+
+			// extract image height and width from header
+			int width  = *(int*)&info[18];
+			int height = *(int*)&info[22];
+
+			std::cout << "[Texture]Name  : " << file_name << std::endl;
+			std::cout << "[Texture]Width : " << width << std::endl;
+			std::cout << "[Texture]Height: " << height << std::endl;
+
+			// allocate 3 bytes per pixel
+			int			   size = 3 * width * height;
+			unsigned char* data = new unsigned char[size];
+
+			// read the rest of the data at once
+			fread(data, sizeof(unsigned char), size, file);
+			fclose(file);
+
+			out_cubes.clear();
+			out_cubes.resize(6);
+
+			for (i = 0; i < size; i += 3) {
+				const int x_coord = (i / 3) % (texture_size * 6);
+				const int num	  = floor(x_coord / texture_size);
+
+				if (num == 2 || num == 3) {
+					const int pseudo_num = num == 2 ? 3 : 2;
+					out_cubes[pseudo_num].push_back(data[i + 2]); // いつか何とかする
+					out_cubes[pseudo_num].push_back(data[i + 1]);
+					out_cubes[pseudo_num].push_back(data[i + 0]);
+					out_cubes[pseudo_num].push_back(255);
+				} else {
+					out_cubes[num].push_back(data[i + 2]);
+					out_cubes[num].push_back(data[i + 1]);
+					out_cubes[num].push_back(data[i + 0]);
+					out_cubes[num].push_back(255);
+				}
 			}
 		}
 	};

@@ -15,9 +15,8 @@ namespace albedos {
 	class Object {
 	public:
 		Object(ID3D12Device* device, ID3D12DescriptorHeap* heap_cbv) : device(device), descriptor_heap_cbv(heap_cbv) {
-			init_vertex();
-			init_texture();
-			init_directx_buffer();
+			init_object_datum();
+			init_directx_buffer_resources();
 		};
 
 	private:
@@ -27,73 +26,79 @@ namespace albedos {
 	protected:
 		ID3D12Device*										device;
 		ID3D12DescriptorHeap*								descriptor_heap_cbv;
-		Microsoft::WRL::ComPtr<ID3D12Resource>				vertex_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource>				index_buffer;
-		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> constant_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource>				texture_buffer;
-		Microsoft::WRL::ComPtr<ID3D12Resource>				shadow_buffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource>				vertex_resource;
+		Microsoft::WRL::ComPtr<ID3D12Resource>				index_resource;
+		std::vector<Microsoft::WRL::ComPtr<ID3D12Resource>> constant_resource;
+		Microsoft::WRL::ComPtr<ID3D12Resource>				texture_resouce;
+		Microsoft::WRL::ComPtr<ID3D12Resource>				shadow_resource;
+		Microsoft::WRL::ComPtr<ID3D12Resource>				cube_map_resource;
 		std::vector<Shape::Vertex>							vertex_data;
 		std::vector<int>									index_data;
 		std::vector<byte>									texture_data;
+		std::vector<std::vector<byte>>						cube_map_data;
 
 	public:
 		std::string	  name;
-		glm::vec3	  position		   = {0.f, 0.f, 0.f};
-		glm::vec3	  rotation		   = {0.f, 0.f, 0.f};
-		glm::vec3	  scale			   = {1.f, 1.f, 1.f};
-		Texture::Type texture_type	   = Texture::Type::Monochrome;
-		float		  texture_color[4] = {1.f, 1.f, 1.f, 1.f};
-		std::string	  texture_file_name	   = "";
-		float		  specular_power   = 100.f;
+		Texture::Type texture_type		 = Texture::Type::Monochrome;
+		float		  texture_color[4]	 = {1.f, 1.f, 1.f, 1.f};
+		std::string	  texture_file_name	 = "";
+		std::string	  cube_map_file_name = "";
+
+		glm::vec3 position		 = {0.f, 0.f, 0.f};
+		glm::vec3 rotation		 = {0.f, 0.f, 0.f};
+		glm::vec3 scale			 = {1.f, 1.f, 1.f};
+		float	  specular_power = 100.f;
 
 	public:
-		void init_vertex() { albedos::Shape::create_plane(vertex_data, index_data); }
-		void init_texture() {
+		void init_object_datum() {
+			albedos::Shape::create_plane(vertex_data, index_data);
 			byte color[4] = {255, 255, 255, 255};
 			texture_data  = albedos::Texture::create_monochromatic(TEXTURE_SIZE, color);
 		}
-		void init_directx_buffer() {
+		void init_directx_buffer_resources() {
 			// Create Buffers
 			HRESULT				  hr;
 			D3D12_HEAP_PROPERTIES heap_properties{};
 			D3D12_RESOURCE_DESC	  resource_desc{};
 
+			// Create Vertex Buffer Resource
 			heap_properties.Type				 = D3D12_HEAP_TYPE_UPLOAD;
 			heap_properties.CPUPageProperty		 = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
 			heap_properties.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
 			heap_properties.CreationNodeMask	 = 1;
 			heap_properties.VisibleNodeMask		 = 1;
-
-			resource_desc.Dimension			 = D3D12_RESOURCE_DIMENSION_BUFFER;
-			resource_desc.Width				 = sizeof(Shape::Vertex) * vertex_data.size();
-			resource_desc.Height			 = 1;
-			resource_desc.DepthOrArraySize	 = 1;
-			resource_desc.MipLevels			 = 1;
-			resource_desc.Format			 = DXGI_FORMAT_UNKNOWN;
-			resource_desc.Layout			 = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-			resource_desc.SampleDesc.Count	 = 1;
-			resource_desc.SampleDesc.Quality = 0;
-
+			resource_desc.Dimension				 = D3D12_RESOURCE_DIMENSION_BUFFER;
+			resource_desc.Width					 = sizeof(Shape::Vertex) * vertex_data.size();
+			resource_desc.Height				 = 1;
+			resource_desc.DepthOrArraySize		 = 1;
+			resource_desc.MipLevels				 = 1;
+			resource_desc.Format				 = DXGI_FORMAT_UNKNOWN;
+			resource_desc.Layout				 = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+			resource_desc.SampleDesc.Count		 = 1;
+			resource_desc.SampleDesc.Quality	 = 0;
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
 												 D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-												 IID_PPV_ARGS(&vertex_buffer));
+												 IID_PPV_ARGS(&vertex_resource));
 			assert(SUCCEEDED(hr) && "Create Committed Resource Vertex Buffer");
 
+			// Create Index Buffer Resource
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
 												 D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-												 IID_PPV_ARGS(&index_buffer));
+												 IID_PPV_ARGS(&index_resource));
 			assert(SUCCEEDED(hr) && "Create Committed Resource Index Buffer");
 
+			// Create Constant Buffer Resources
 			resource_desc.Width		 = CBUFFER_SIZE;
 			constexpr int cbuff_size = 2;
-			constant_buffer.resize(cbuff_size);
+			constant_resource.resize(cbuff_size);
 			for (int i = 0; i < 2; i++) {
 				hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
 													 D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-													 IID_PPV_ARGS(&constant_buffer[i]));
+													 IID_PPV_ARGS(&constant_resource[i]));
 				assert(SUCCEEDED(hr) && "Create Committed Resource Constant Buffer");
 			}
 
+			// Create Texture Buffer Resource
 			heap_properties.Type				 = D3D12_HEAP_TYPE_CUSTOM;
 			heap_properties.CPUPageProperty		 = D3D12_CPU_PAGE_PROPERTY_WRITE_BACK;
 			heap_properties.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
@@ -106,7 +111,14 @@ namespace albedos {
 			resource_desc.Layout				 = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
 												 D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
-												 IID_PPV_ARGS(&texture_buffer));
+												 IID_PPV_ARGS(&texture_resouce));
+			assert(SUCCEEDED(hr) && "Create Committed Resource Texture Buffer");
+
+			// Create Cube Map Resource
+			resource_desc.DepthOrArraySize = 6;
+			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
+												 D3D12_RESOURCE_STATE_GENERIC_READ, nullptr,
+												 IID_PPV_ARGS(&cube_map_resource));
 			assert(SUCCEEDED(hr) && "Create Committed Resource Texture Buffer");
 
 			// Init Buffers
@@ -114,25 +126,25 @@ namespace albedos {
 			const UINT	 size_vertices = sizeof(Shape::Vertex) * vertex_data.size();
 			const size_t size_indices  = sizeof(int) * index_data.size();
 
-			hr = vertex_buffer->Map(0, nullptr, &Mapped);
+			hr = vertex_resource->Map(0, nullptr, &Mapped);
 			assert(SUCCEEDED(hr) && "Fialed Vertex Buffer Mapping");
 			CopyMemory(Mapped, vertex_data.data(), size_vertices);
-			vertex_buffer->Unmap(0, nullptr);
+			vertex_resource->Unmap(0, nullptr);
 			Mapped = nullptr;
 
-			hr = index_buffer->Map(0, nullptr, &Mapped);
+			hr = index_resource->Map(0, nullptr, &Mapped);
 			assert(SUCCEEDED(hr) && "Failed Index Buffer Mapping");
 			CopyMemory(Mapped, index_data.data(), size_indices);
-			index_buffer->Unmap(0, nullptr);
+			index_resource->Unmap(0, nullptr);
 			Mapped = nullptr;
 
 			const D3D12_BOX box = {0, 0, 0, TEXTURE_SIZE, TEXTURE_SIZE, 1};
-			hr					= texture_buffer->WriteToSubresource(0, &box, texture_data.data(), 4 * TEXTURE_SIZE,
-																	 4 * TEXTURE_SIZE * TEXTURE_SIZE);
+			hr					= texture_resouce->WriteToSubresource(0, &box, texture_data.data(), 4 * TEXTURE_SIZE,
+																	  4 * TEXTURE_SIZE * TEXTURE_SIZE);
 			assert(SUCCEEDED(hr) && "Write to Subrecource");
 		};
 
-		// Create Resource Views and Draw
+		// Create Resource Views and Draw Object
 		void update_draw_directx(ID3D12GraphicsCommandList* command_list, int index, int num_buffers) {
 			UINT					 size_vertices = sizeof(Shape::Vertex) * vertex_data.size();
 			const size_t			 size_indices  = sizeof(int) * index_data.size();
@@ -140,12 +152,12 @@ namespace albedos {
 			D3D12_INDEX_BUFFER_VIEW	 index_view{};
 
 			// Vertex View
-			vertex_view.BufferLocation = vertex_buffer->GetGPUVirtualAddress();
+			vertex_view.BufferLocation = vertex_resource->GetGPUVirtualAddress();
 			vertex_view.StrideInBytes  = sizeof(Shape::Vertex); // Size of 1 Vertex
 			vertex_view.SizeInBytes	   = size_vertices;			// Size of All Vertices
 
 			// Index View
-			index_view.BufferLocation = index_buffer->GetGPUVirtualAddress();
+			index_view.BufferLocation = index_resource->GetGPUVirtualAddress();
 			index_view.Format		  = DXGI_FORMAT_R32_UINT;
 			index_view.SizeInBytes	  = size_indices;
 
@@ -153,14 +165,16 @@ namespace albedos {
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbuff_desc = {};
 			D3D12_CPU_DESCRIPTOR_HANDLE		cbv_handle = descriptor_heap_cbv->GetCPUDescriptorHandleForHeapStart();
 			UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			cbuff_desc.BufferLocation = constant_buffer[0]->GetGPUVirtualAddress();
+			cbuff_desc.BufferLocation = constant_resource[0]->GetGPUVirtualAddress();
 			cbuff_desc.SizeInBytes	  = CBUFFER_SIZE;
 			cbv_handle.ptr += index * num_buffers * cbv_descriptor_size;
 			device->CreateConstantBufferView(&cbuff_desc, cbv_handle);
+
 			// Consntant Buffer View Local (Index 2)
-			cbuff_desc.BufferLocation = constant_buffer[1]->GetGPUVirtualAddress();
+			cbuff_desc.BufferLocation = constant_resource[1]->GetGPUVirtualAddress();
 			cbv_handle.ptr += cbv_descriptor_size;
 			device->CreateConstantBufferView(&cbuff_desc, cbv_handle);
+
 			// Shader Resource View Texture (Index 3)
 			D3D12_SHADER_RESOURCE_VIEW_DESC tex_desc{};
 			tex_desc.Format						   = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -171,13 +185,22 @@ namespace albedos {
 			tex_desc.Texture2D.ResourceMinLODClamp = 0.0F;
 			tex_desc.Shader4ComponentMapping	   = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			cbv_handle.ptr += cbv_descriptor_size;
-			device->CreateShaderResourceView(texture_buffer.Get(), &tex_desc, cbv_handle);
+			device->CreateShaderResourceView(texture_resouce.Get(), &tex_desc, cbv_handle);
+
 			// Shader Resource View Depth Texture (Index 4)
 			tex_desc.Format = DXGI_FORMAT_R32_FLOAT;
 			cbv_handle.ptr += cbv_descriptor_size;
-			device->CreateShaderResourceView(shadow_buffer.Get(), &tex_desc, cbv_handle);
+			device->CreateShaderResourceView(shadow_resource.Get(), &tex_desc, cbv_handle);
 
-			command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+			// Shader Resource View Cube Map Texture (Index 5)
+			tex_desc.Format						 = DXGI_FORMAT_R8G8B8A8_UNORM;
+			tex_desc.ViewDimension				 = D3D12_SRV_DIMENSION_TEXTURECUBE;
+			tex_desc.TextureCube.MipLevels		 = 1;
+			tex_desc.TextureCube.MostDetailedMip = 0;
+			cbv_handle.ptr += cbv_descriptor_size;
+			device->CreateShaderResourceView(cube_map_resource.Get(), &tex_desc, cbv_handle);
+
+			command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			command_list->IASetVertexBuffers(0, 1, &vertex_view);
 			command_list->IASetIndexBuffer(&index_view);
 
@@ -190,10 +213,10 @@ namespace albedos {
 
 			// calculate_scene(scene);
 
-			hr = constant_buffer[0]->Map(0, nullptr, &Mapped);
+			hr = constant_resource[0]->Map(0, nullptr, &Mapped);
 			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Scene]");
 			CopyMemory(Mapped, &scene, sizeof(scene));
-			constant_buffer[0]->Unmap(0, nullptr);
+			constant_resource[0]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
 		// Constant Buffer 2 supports Object Unique Variables
@@ -203,14 +226,14 @@ namespace albedos {
 
 			calculate_local(object);
 
-			hr = constant_buffer[1]->Map(0, nullptr, &Mapped);
+			hr = constant_resource[1]->Map(0, nullptr, &Mapped);
 			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Object]");
 			CopyMemory(Mapped, &object, sizeof(object));
-			constant_buffer[1]->Unmap(0, nullptr);
+			constant_resource[1]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
 
-		void set_shadow_buffer(ID3D12Resource* in_buffer) { shadow_buffer = in_buffer; }
+		void set_shadow_buffer(ID3D12Resource* in_resource) { shadow_resource = in_resource; }
 		void set_vertex_data(Shape::Type in_type) {
 			vertex_data.clear();
 			index_data.clear();
@@ -229,7 +252,7 @@ namespace albedos {
 				break;
 			}
 
-			init_directx_buffer();
+			init_directx_buffer_resources();
 		}
 		void set_texture_data(Texture::Type in_type) {
 			texture_data.clear();
@@ -255,9 +278,25 @@ namespace albedos {
 			}
 
 			const D3D12_BOX box = {0, 0, 0, TEXTURE_SIZE, TEXTURE_SIZE, 1};
-			hr					= texture_buffer->WriteToSubresource(0, &box, texture_data.data(), 4 * TEXTURE_SIZE,
-																	 4 * TEXTURE_SIZE * TEXTURE_SIZE);
+			hr					= texture_resouce->WriteToSubresource(0, &box, texture_data.data(), 4 * TEXTURE_SIZE,
+																	  4 * TEXTURE_SIZE * TEXTURE_SIZE);
 			assert(SUCCEEDED(hr) && "Write to Subrecource");
+		}
+		void set_cubemap_data(const char* in_file_name) {
+			HRESULT hr;
+
+			const UINT width  = TEXTURE_SIZE;
+			const UINT height = TEXTURE_SIZE;
+
+			cube_map_data.clear();
+			Texture::read_bmp_cube_file(in_file_name, cube_map_data, width);
+
+			const D3D12_BOX box = {0, 0, 0, width, height, 1};
+			for (int i = 0; i < 6; i++) {
+				hr = cube_map_resource->WriteToSubresource(i, &box, cube_map_data[i].data(), 4 * width,
+														   4 * width * height);
+				assert(SUCCEEDED(hr) && "Write to Subrecource[CubeMap]");
+			}
 		}
 
 	protected:

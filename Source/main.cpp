@@ -42,6 +42,7 @@ int main() {
 	MAIN_LOG("Prepared UI");
 
 	directx->set_render_objects(scene->objects);
+	directx->set_render_skydome(scene->skydome.get());
 	MAIN_LOG("Initialized Object to Renderer");
 
 	ui->init_UI_directX(window->get_window(), directx->get_device(), directx->get_num_frames(),
@@ -58,6 +59,8 @@ int main() {
 			object.update_constant_buffer_1(constant->get_scene());
 			object.update_constant_buffer_2(constant->get_local());
 		}
+		scene->skydome->update_constant_buffer_1(constant->get_scene());
+		scene->skydome->update_constant_buffer_2(constant->get_local());
 
 		ui->render();
 		directx->render();

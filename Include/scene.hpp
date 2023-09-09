@@ -9,11 +9,15 @@
 namespace albedos {
 	class Scene {
 	public:
-		Scene(ID3D12Device* device, ID3D12DescriptorHeap* heap) : device(device), heap(heap) { create_scene_1(); };
+		Scene(ID3D12Device* device, ID3D12DescriptorHeap* heap) : device(device), heap(heap) {
+			create_scene_1();
+			create_skydome();
+		};
 
-		ID3D12Device*				 device;
-		ID3D12DescriptorHeap*		 heap;
-		std::vector<albedos::Object> objects;
+		ID3D12Device*					 device;
+		ID3D12DescriptorHeap*			 heap;
+		std::vector<albedos::Object>	 objects;
+		std::shared_ptr<albedos::Object> skydome;
 
 		/**
 		 * Scene 1
@@ -29,14 +33,23 @@ namespace albedos {
 			object_1.set_vertex_data(albedos::Shape::Type::Torus);
 
 			object_2.name			   = "Default Plane";
-			object_2.scale			   = {10.f, 10.f, 1.f};
+			object_2.scale			   = {5.f, 5.f, 1.f};
 			object_2.texture_color[0]  = 0.7f;
 			object_2.texture_color[1]  = 0.7f;
 			object_2.texture_color[2]  = 0.7f;
 			object_2.texture_file_name = "Resource/polystyrene_diff_1k.bmp";
-			object_2.set_texture_data(albedos::Texture::Type::CheckerBoard);
+			object_2.set_texture_data(albedos::Texture::Type::Image);
 
 			objects = {object_1, object_2};
+		}
+
+		void create_skydome() {
+			skydome			  = std::make_shared<albedos::Object>(device, heap);
+			skydome->name	  = "Sky Cube";
+			skydome->position = {0.f, 0.f, 0.f};
+			skydome->scale	  = {20.f, 20.f, 20.f};
+			skydome->set_vertex_data(albedos::Shape::Type::Cube);
+			skydome->set_cubemap_data("Resource/studio_garden_4k.bmp");
 		}
 	};
 } // namespace albedos

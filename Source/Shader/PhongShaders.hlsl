@@ -18,23 +18,25 @@ cbuffer local : register(b1){
 
 Texture2D<float4> Texture0      : register(t0);
 Texture2D<float4> ShadowMap     : register(t1);
-SamplerState Sampler0           : register(s0);
-SamplerState Sampler1           : register(s1);
+TextureCube       CubeMap       : register(t2);
+SamplerState      Sampler0      : register(s0);
+SamplerState      Sampler1      : register(s1);
 
 struct VS_INPUT{
-    float3 Position : POSITION;
-    float4 Color    : COLOR;
-	float3 Normal   : NORMAL;
-    float2 UV       : TEXCOORD;
+    float3 Position : POSITION0;
+    float4 Color    : COLOR0;
+	float3 Normal   : NORMAL0;
+    float2 UV       : TEXCOORD0;
 };
 
 struct PS_INPUT{
     float4 Position         : SV_POSITION;
-    float4 Color            : COLOR;
-	float3 Normal	        : NORMAL;
-    float2 UV               : TEXCOORD;
-    float4 PositionWorld    : POSITION;
-    float4 ShadowCoord	: POSITION_SM;
+    float4 Color            : COLOR0;
+	float3 Normal	        : NORMAL0;
+    float2 UV               : TEXCOORD0;
+    float4 PositionWorld    : POSITION_W;
+    float4 ShadowCoord	    : POSITION_SM;
+    float3 Reflect          : COLOR1;
 };
 
 PS_INPUT VSMain(VS_INPUT input){
@@ -58,6 +60,10 @@ PS_INPUT VSMain(VS_INPUT input){
 	output.ShadowCoord.y = (1.0 - pos_shadow.y) / 2.0f;
 	output.ShadowCoord.z = pos_shadow.z;
 
+    //float3 eye_dir = normalize(input.Position.xyz - ViewPosition.xyz);
+    //output.Reflect = reflect(eye_dir, -input.Normal.xyz);
+    output.Reflect = input.Position;
+
     return output;
 }
 
@@ -80,6 +86,9 @@ float4 PSMain(PS_INPUT input) : SV_TARGET{
     float shadow_map = ShadowMap.Sample(Sampler1, input.ShadowCoord.xy);
     float shadow_alpha = (shadow_map > input.ShadowCoord.z - ShadowMappingBias ) ? 1.0f : 0.5f;
     surf_color = IsEnabledShadowMapping ? surf_color * shadow_alpha : surf_color;
+
+    //float4 cube_map_color = CubeMap.Sample(Sampler0, input.Reflect);
+    //return cube_map_color;
 
     return surf_color;
 }
