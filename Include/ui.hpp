@@ -1,5 +1,6 @@
 #include "constant.hpp"
 #include "global.hpp"
+#include "object.hpp"
 #include "texture.hpp"
 #include <GLFW/glfw3.h>
 #include <cassert>
@@ -14,22 +15,21 @@
 namespace albedos {
 	class UI {
 	protected:
-		float color[4];
+		std::vector<std::shared_ptr<albedos::Object>> render_objects;
 
 	public:
-		void init_UI_directX(GLFWwindow* window, ID3D12Device* device, UINT num_frames,
-							 ID3D12DescriptorHeap* heap_srv) {
+		void init(GLFWwindow* window, ID3D12Device* device, UINT num_frames, ID3D12DescriptorHeap* heap_srv) {
 			init_imgui();
 			init_imgui_glfw(window);
 			init_imgui_directX(device, num_frames, heap_srv);
 		}
-		void update(std::vector<std::shared_ptr<albedos::Object>> objects) {
+		void update() {
 			ImGui_ImplDX12_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
 
 			window_1();
-			window_2(objects);
+			window_2();
 		}
 		void render() { ImGui::Render(); }
 		void shutdown() {
@@ -37,7 +37,9 @@ namespace albedos {
 			ImGui_ImplGlfw_Shutdown();
 			ImGui::DestroyContext();
 		}
-		inline ImGuiIO& get_io() { return ImGui::GetIO(); }
+		void set_render_objects(std::vector<std::shared_ptr<albedos::Object>> in_objects) {
+			render_objects = in_objects;
+		}
 
 	protected:
 		void init_imgui() {
@@ -71,27 +73,38 @@ namespace albedos {
 												 : "Unknown";
 			ImGui::SliderInt("API", &elem_graphics_int, 0, Element_COUNT - 1, elem_graphics_name);
 			ImGui::ColorEdit3("BG", Global::bg_color);
+			
+			if (ImGui::CollapsingHeader("View")) {
+				ImGui::DragFloat3("VPos", Global::view_position, 0.1f, -30.0f, 30.0f, "%.2f");
+				ImGui::DragFloat3("Look", Global::view_lookat, 0.1f, -10.0f, 10.0f, "%.2f");
+				ImGui::DragFloat3("VUp", Global::view_up, 0.01f, -1.0f, 1.0f, "%.2f");
+			}
 
-			ImGui::SeparatorText("View");
-			ImGui::DragFloat3("VPos", Global::view_position, 0.1f, -30.0f, 30.0f, "%.2f");
-			ImGui::DragFloat3("Look", Global::view_lookat, 0.1f, -10.0f, 10.0f, "%.2f");
-			ImGui::DragFloat3("VUp", Global::view_up, 0.01f, -1.0f, 1.0f, "%.2f");
-			/*
-			ImGui::SeparatorText("Projection");
-			ImGui::DragFloat("FOV", &Global::FOV, 1.f, 0.0f, 360.0f, "%.2f");
-			*/
-			ImGui::SeparatorText("Light");
-			ImGui::DragFloat3("LPos", Global::light_position, 0.1f, -30.0f, 30.0f, "%.2f");
-			ImGui::ColorEdit4("LAmb", Global::light_ambient);
-			ImGui::SliderFloat("LInt", &Global::light_intensity, 0.f, 5.f, "%.2f");
-			ImGui::Checkbox("Shadow Mapping", &Global::is_enabled_shadow_mapping);
-			ImGui::SliderFloat("Shadow Bias", &Global::shadow_mapping_bias, 0.f, 0.0002f, "%.6f");
+			if (ImGui::CollapsingHeader("Projection")) {
+				ImGui::DragFloat("FOV", &Global::projection_FOV, 1.f, 0.0f, 360.0f, "%.2f");
+				ImGui::DragFloat("Near", &Global::projection_near, 0.1f, 0.0f, 100.0f, "%.2f");
+				ImGui::DragFloat("Far", &Global::projection_far, 1.f, 0.0f, 2000.0f, "%.2f");
+			}
 
-			ImGui::SeparatorText("Anti-Ariasing");
-			ImGui::Checkbox("MSAA", &Global::is_enabled_msaa);
+			if (ImGui::CollapsingHeader("Light")) {
+				ImGui::DragFloat3("LPos", Global::light_position, 0.1f, -30.0f, 30.0f, "%.2f");
+				ImGui::ColorEdit4("LAmb", Global::light_ambient);
+				ImGui::SliderFloat("LInt", &Global::light_intensity, 0.f, 5.f, "%.2f");
+				ImGui::Checkbox("Shadow Mapping", &Global::is_enabled_shadow_mapping);
+				ImGui::SliderFloat("Shadow Bias", &Global::shadow_mapping_bias, 0.f, 0.0002f, "%.6f");
+			}
 
-			ImGui::SeparatorText("Postprocess");
-			ImGui::Checkbox("Postprocess", &Global::is_enabled_postprocess);
+			if (ImGui::CollapsingHeader("Anti Aliasing")) {
+				ImGui::Checkbox("MSAA", &Global::is_enabled_msaa);
+			}
+
+			if (ImGui::CollapsingHeader("Postprocess")) {
+				ImGui::Checkbox("Postprocessing", &albedos::Global::is_enabled_postprocess);
+			}
+
+			if (ImGui::CollapsingHeader("Skydome")) {
+				ImGui::Checkbox("Display Skydome", &albedos::Global::is_enabled_skydome);
+			}
 
 			ImGui::End();
 		}
@@ -99,7 +112,7 @@ namespace albedos {
 		 * Window 2 is Located Right
 		 * Manipulate each Object Variable
 		 */
-		void window_2(std::vector<std::shared_ptr<albedos::Object>> objects) {
+		void window_2() {
 			ImGui::Begin("Object Panel");
 
 			// Objects Table
@@ -115,13 +128,14 @@ namespace albedos {
 				ImGui::TableSetupScrollFreeze(0, 1);
 				ImGui::TableHeadersRow();
 
-				for (int i = 0; i < static_cast<int>(objects.size()); i++) {
-					char			id_label[32];
-					albedos::Object* object = objects[i].get();
+				for (int i = 0; i < static_cast<int>(render_objects.size()); i++) {
+					char			 id_label[32];
+					albedos::Object* object = render_objects[i].get();
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn();
 					sprintf(id_label, "%d", i);
-					if (ImGui::Selectable(id_label, false, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0.0f, 0.f))) {
+					bool is_selected = select_id == i;
+					if (ImGui::Selectable(id_label, is_selected, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0.0f, 0.f))) {
 						select_id = i;
 					}
 					ImGui::TableNextColumn();
@@ -130,7 +144,7 @@ namespace albedos {
 				ImGui::EndTable();
 			}
 
-			albedos::Object* object = objects[select_id].get();
+			albedos::Object* object = render_objects[select_id].get();
 			ImGui::Text("> %s", object->name.c_str());
 
 			ImGui::SeparatorText("Transform");

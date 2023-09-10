@@ -45,7 +45,7 @@ namespace albedos {
 		D3D12_VIEWPORT viewport_shadow;
 		D3D12_RECT	   rect_scissor_shadow;
 
-		std::vector<albedos::Object*> objects;
+		std::vector<albedos::Object*> render_objects;
 		albedos::Object*			  skydome;
 
 		Microsoft::WRL::ComPtr<IDXGIFactory4>			  factory;
@@ -1206,9 +1206,9 @@ namespace albedos {
 			rtv_index = swap_chain->GetCurrentBackBufferIndex();
 		}
 		inline void set_render_objects(std::vector<std::shared_ptr<albedos::Object>> in_objects) {
-			objects.clear();
+			render_objects.clear();
 			for (std::shared_ptr<albedos::Object> obj : in_objects) {
-				objects.push_back(obj.get());
+				render_objects.push_back(obj.get());
 				obj->set_shadow_buffer(shadow_buffer.Get());
 			}
 		}
@@ -1234,9 +1234,9 @@ namespace albedos {
 			command_list->SetGraphicsRootSignature(root_signature.Get());
 			command_list->SetPipelineState(pipeline_state_shadow.Get());
 
-			for (int object_index = 0; object_index < static_cast<int>(objects.size()); object_index++) {
+			for (int object_index = 0; object_index < static_cast<int>(render_objects.size()); object_index++) {
 				set_constant_root_table_by_object(object_index);
-				albedos::Object* object = objects[object_index];
+				albedos::Object* object = render_objects[object_index];
 				object->set_resource_views_and_draw(command_list.Get(), object_index, MAX_CRV_SRV_BUFFER_NUMBER);
 			}
 
@@ -1280,13 +1280,13 @@ namespace albedos {
 			command_list->SetPipelineState(pipeline_state_render.Get());
 
 			int index_object = 0;
-			for (albedos::Object* object : objects) {
+			for (albedos::Object* object : render_objects) {
 				set_constant_root_table_by_object(index_object);
 				object->set_resource_views_and_draw(command_list.Get(), index_object, MAX_CRV_SRV_BUFFER_NUMBER);
 				index_object++;
 			}
 
-			if (skydome) {
+			if (skydome && Global::is_enabled_skydome) {
 				command_list->SetPipelineState(pipeline_state_skydome.Get());
 				set_constant_root_table_by_object(index_object);
 				skydome->set_resource_views_and_draw(command_list.Get(), index_object, MAX_CRV_SRV_BUFFER_NUMBER);
@@ -1323,13 +1323,13 @@ namespace albedos {
 			command_list->SetPipelineState(pipeline_state_msaa.Get());
 
 			int num_object = 0;
-			for (albedos::Object* object : objects) {
+			for (albedos::Object* object : render_objects) {
 				set_constant_root_table_by_object(num_object);
 				object->set_resource_views_and_draw(command_list.Get(), num_object, MAX_CRV_SRV_BUFFER_NUMBER);
 				num_object++;
 			}
 
-			if (skydome) {
+			if (skydome && Global::is_enabled_skydome) {
 				command_list->SetPipelineState(pipeline_state_skydome.Get());
 				set_constant_root_table_by_object(num_object);
 				skydome->set_resource_views_and_draw(command_list.Get(), num_object, MAX_CRV_SRV_BUFFER_NUMBER);

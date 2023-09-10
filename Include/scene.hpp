@@ -14,10 +14,10 @@ namespace albedos {
 			create_skydome();
 		};
 
-		ID3D12Device*					 device;
-		ID3D12DescriptorHeap*			 heap;
-		std::vector<std::shared_ptr<albedos::Object>>	 objects;
-		std::shared_ptr<albedos::Object> skydome;
+		ID3D12Device*								  device;
+		ID3D12DescriptorHeap*						  heap;
+		std::vector<std::shared_ptr<albedos::Object>> render_objects;
+		std::shared_ptr<albedos::Object>			  skydome;
 
 		/**
 		 * Scene 1
@@ -27,20 +27,20 @@ namespace albedos {
 			std::shared_ptr<albedos::Object> object_1 = std::make_shared<albedos::Object>(device, heap);
 			std::shared_ptr<albedos::Object> object_2 = std::make_shared<albedos::Object>(device, heap);
 
-			object_1->name	  = "Default Torus";
+			object_1->name	   = "Scene1 Torus";
 			object_1->position = {0.f, 0.f, 1.5f};
 			object_1->rotation = {0.3f, 0.2f, 0.f};
 			object_1->set_vertex_data(albedos::Shape::Type::Torus);
 
-			object_2->name			   = "Default Plane";
-			object_2->scale			   = {5.f, 5.f, 1.f};
-			object_2->texture_color[0]  = 0.7f;
-			object_2->texture_color[1]  = 0.7f;
-			object_2->texture_color[2]  = 0.7f;
+			object_2->name				= "Scene1 Plane";
+			object_2->scale				= {5.f, 5.f, 1.f};
+			object_2->texture_color[0]	= 0.7f;
+			object_2->texture_color[1]	= 0.7f;
+			object_2->texture_color[2]	= 0.7f;
 			object_2->texture_file_name = "Resource/polystyrene_diff_1k.bmp";
 			object_2->set_texture_data(albedos::Texture::Type::Image);
 
-			objects = {object_1, object_2};
+			render_objects = {object_1, object_2};
 		}
 
 		void create_skydome() {

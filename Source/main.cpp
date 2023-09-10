@@ -41,21 +41,21 @@ int main() {
 	std::unique_ptr<albedos::UI> ui = std::make_unique<albedos::UI>();
 	MAIN_LOG("Prepared UI");
 
-	directx->set_render_objects(scene->objects);
-	directx->set_render_skydome(scene->skydome.get());
-	MAIN_LOG("Initialized Object to Renderer");
-
-	ui->init_UI_directX(window->get_window(), directx->get_device(), directx->get_num_frames(),
-						directx->get_imgui_heap());
+	ui->init(window->get_window(), directx->get_device(), directx->get_num_frames(), directx->get_imgui_heap());
 	MAIN_LOG("Initialized ImGui for DirectX");
 
+	directx->set_render_objects(scene->render_objects);
+	directx->set_render_skydome(scene->skydome.get());
+	ui->set_render_objects(scene->render_objects);
+	MAIN_LOG("Initialized Object to Renderer");
+
 	while (window->is_update()) {
-		ui->update(scene->objects);
+		ui->update();
 		window->update();
 		control->update();
 		constant->update();
 
-		for (std::shared_ptr<albedos::Object> object : scene->objects) {
+		for (std::shared_ptr<albedos::Object> object : scene->render_objects) {
 			object->update_resources(constant->get_scene(), constant->get_local());
 		}
 		scene->skydome->update_resources(constant->get_scene(), constant->get_local());
