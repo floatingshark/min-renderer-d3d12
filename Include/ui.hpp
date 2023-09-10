@@ -23,7 +23,7 @@ namespace albedos {
 			init_imgui_glfw(window);
 			init_imgui_directX(device, num_frames, heap_srv);
 		}
-		void update(std::vector<albedos::Object>& objects) {
+		void update(std::vector<std::shared_ptr<albedos::Object>> objects) {
 			ImGui_ImplDX12_NewFrame();
 			ImGui_ImplGlfw_NewFrame();
 			ImGui::NewFrame();
@@ -99,7 +99,7 @@ namespace albedos {
 		 * Window 2 is Located Right
 		 * Manipulate each Object Variable
 		 */
-		void window_2(std::vector<albedos::Object>& objects) {
+		void window_2(std::vector<std::shared_ptr<albedos::Object>> objects) {
 			ImGui::Begin("Object Panel");
 
 			// Objects Table
@@ -117,7 +117,7 @@ namespace albedos {
 
 				for (int i = 0; i < static_cast<int>(objects.size()); i++) {
 					char			id_label[32];
-					albedos::Object object = objects[i];
+					albedos::Object* object = objects[i].get();
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn();
 					sprintf(id_label, "%d", i);
@@ -125,32 +125,32 @@ namespace albedos {
 						select_id = i;
 					}
 					ImGui::TableNextColumn();
-					ImGui::Text("%s", object.name.c_str());
+					ImGui::Text("%s", object->name.c_str());
 				}
 				ImGui::EndTable();
 			}
 
-			albedos::Object& object = objects[select_id];
-			ImGui::Text("> %s", object.name.c_str());
+			albedos::Object* object = objects[select_id].get();
+			ImGui::Text("> %s", object->name.c_str());
 
 			ImGui::SeparatorText("Transform");
-			ImGui::DragFloat3("Pos", (float*)&object.position, 0.1f, -10.0f, 10.0f, "%.2f");
-			ImGui::DragFloat3("Rot", (float*)&object.rotation, 0.1f, -10.0f, 10.0f, "%.2f");
-			ImGui::DragFloat3("Scl", (float*)&object.scale, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("Pos", (float*)&object->position, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("Rot", (float*)&object->rotation, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("Scl", (float*)&object->scale, 0.1f, -10.0f, 10.0f, "%.2f");
 
 			ImGui::SeparatorText("Material");
 			const char* tex_items[]		 = {"Mono", "Checker Board", "Image"};
-			int			tex_item_current = (int)object.texture_type;
+			int			tex_item_current = (int)object->texture_type;
 			if (ImGui::Combo("Tex", &tex_item_current, tex_items, IM_ARRAYSIZE(tex_items))) {
 				const Texture::Type texture_type = (Texture::Type)tex_item_current;
-				object.set_texture_data(texture_type);
+				object->set_texture_data(texture_type);
 			}
-			if (ImGui::ColorEdit3("TCol", object.texture_color)) {
+			if (ImGui::ColorEdit3("TCol", object->texture_color)) {
 				const Texture::Type texture_type = (Texture::Type)tex_item_current;
-				object.set_texture_data(texture_type);
+				object->set_texture_data(texture_type);
 			}
 
-			ImGui::SliderFloat("Spec", &object.specular_power, 0.1f, 1000.f, "%.2f");
+			ImGui::SliderFloat("Spec", &object->specular_power, 0.1f, 1000.f, "%.2f");
 
 			ImGui::End();
 		}

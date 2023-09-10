@@ -55,12 +55,10 @@ int main() {
 		control->update();
 		constant->update();
 
-		for (albedos::Object& object : scene->objects) {
-			object.update_constant_buffer_1(constant->get_scene());
-			object.update_constant_buffer_2(constant->get_local());
+		for (std::shared_ptr<albedos::Object> object : scene->objects) {
+			object->update_resources(constant->get_scene(), constant->get_local());
 		}
-		scene->skydome->update_constant_buffer_1(constant->get_scene());
-		scene->skydome->update_constant_buffer_2(constant->get_local());
+		scene->skydome->update_resources(constant->get_scene(), constant->get_local());
 
 		ui->render();
 		directx->render();

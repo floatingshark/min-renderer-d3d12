@@ -144,8 +144,13 @@ namespace albedos {
 			assert(SUCCEEDED(hr) && "Write to Subrecource");
 		};
 
-		// Create Resource Views and Draw Object
-		void update_draw_directx(ID3D12GraphicsCommandList* command_list, int index, int num_buffers) {
+		// Update Constant and Shader Resource
+		void update_resources(Constant::Scene scene, Constant::Local local) {
+			update_constant_resource_1(scene);
+			update_constant_resource_2(local);
+		}
+		// Update Resource Views and Draw Object
+		void set_resource_views_and_draw(ID3D12GraphicsCommandList* command_list, int index, int num_buffers) {
 			UINT					 size_vertices = sizeof(Shape::Vertex) * vertex_data.size();
 			const size_t			 size_indices  = sizeof(int) * index_data.size();
 			D3D12_VERTEX_BUFFER_VIEW vertex_view{};
@@ -205,32 +210,6 @@ namespace albedos {
 			command_list->IASetIndexBuffer(&index_view);
 
 			command_list->DrawIndexedInstanced(index_data.size(), 1, 0, 0, 0);
-		}
-		// Constant Buffer 1 supports Scene Mutual Variables
-		void update_constant_buffer_1(Constant::Scene scene) {
-			HRESULT hr;
-			void*	Mapped;
-
-			// calculate_scene(scene);
-
-			hr = constant_resource[0]->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Scene]");
-			CopyMemory(Mapped, &scene, sizeof(scene));
-			constant_resource[0]->Unmap(0, nullptr);
-			Mapped = nullptr;
-		}
-		// Constant Buffer 2 supports Object Unique Variables
-		void update_constant_buffer_2(Constant::Local object) {
-			HRESULT hr;
-			void*	Mapped;
-
-			calculate_local(object);
-
-			hr = constant_resource[1]->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Object]");
-			CopyMemory(Mapped, &object, sizeof(object));
-			constant_resource[1]->Unmap(0, nullptr);
-			Mapped = nullptr;
 		}
 
 		void set_shadow_buffer(ID3D12Resource* in_resource) { shadow_resource = in_resource; }
@@ -300,6 +279,32 @@ namespace albedos {
 		}
 
 	protected:
+		// Constant Buffer 1 supports Scene Mutual Variables
+		void update_constant_resource_1(Constant::Scene scene) {
+			HRESULT hr;
+			void*	Mapped;
+
+			// calculate_scene(scene);
+
+			hr = constant_resource[0]->Map(0, nullptr, &Mapped);
+			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Scene]");
+			CopyMemory(Mapped, &scene, sizeof(scene));
+			constant_resource[0]->Unmap(0, nullptr);
+			Mapped = nullptr;
+		}
+		// Constant Buffer 2 supports Local Variables
+		void update_constant_resource_2(Constant::Local local) {
+			HRESULT hr;
+			void*	Mapped;
+
+			calculate_local(local);
+
+			hr = constant_resource[1]->Map(0, nullptr, &Mapped);
+			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Object]");
+			CopyMemory(Mapped, &local, sizeof(local));
+			constant_resource[1]->Unmap(0, nullptr);
+			Mapped = nullptr;
+		}
 		// void calculate_scene(Constant::Scene& scene) {}
 		void calculate_local(Constant::Local& local) {
 			local.world			 = glm::translate(local.world, position);

@@ -45,8 +45,8 @@ namespace albedos {
 		D3D12_VIEWPORT viewport_shadow;
 		D3D12_RECT	   rect_scissor_shadow;
 
-		std::vector<albedos::Object> objects;
-		albedos::Object*			 skydome;
+		std::vector<albedos::Object*> objects;
+		albedos::Object*			  skydome;
 
 		Microsoft::WRL::ComPtr<IDXGIFactory4>			  factory;
 		Microsoft::WRL::ComPtr<ID3D12Device>			  device;
@@ -1205,11 +1205,11 @@ namespace albedos {
 
 			rtv_index = swap_chain->GetCurrentBackBufferIndex();
 		}
-		inline void set_render_objects(std::vector<albedos::Object>& in_objects) {
-			objects = in_objects;
-
-			for (albedos::Object& obj : objects) {
-				obj.set_shadow_buffer(shadow_buffer.Get());
+		inline void set_render_objects(std::vector<std::shared_ptr<albedos::Object>> in_objects) {
+			objects.clear();
+			for (std::shared_ptr<albedos::Object> obj : in_objects) {
+				objects.push_back(obj.get());
+				obj->set_shadow_buffer(shadow_buffer.Get());
 			}
 		}
 		inline void					 set_render_skydome(albedos::Object* in_object) { skydome = in_object; }
@@ -1236,8 +1236,8 @@ namespace albedos {
 
 			for (int object_index = 0; object_index < static_cast<int>(objects.size()); object_index++) {
 				set_constant_root_table_by_object(object_index);
-				albedos::Object& object = objects[object_index];
-				object.update_draw_directx(command_list.Get(), object_index, MAX_CRV_SRV_BUFFER_NUMBER);
+				albedos::Object* object = objects[object_index];
+				object->set_resource_views_and_draw(command_list.Get(), object_index, MAX_CRV_SRV_BUFFER_NUMBER);
 			}
 
 			set_resource_barrier(shadow_buffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE,
@@ -1280,16 +1280,16 @@ namespace albedos {
 			command_list->SetPipelineState(pipeline_state_render.Get());
 
 			int index_object = 0;
-			for (albedos::Object& object : objects) {
+			for (albedos::Object* object : objects) {
 				set_constant_root_table_by_object(index_object);
-				object.update_draw_directx(command_list.Get(), index_object, MAX_CRV_SRV_BUFFER_NUMBER);
+				object->set_resource_views_and_draw(command_list.Get(), index_object, MAX_CRV_SRV_BUFFER_NUMBER);
 				index_object++;
 			}
 
 			if (skydome) {
 				command_list->SetPipelineState(pipeline_state_skydome.Get());
 				set_constant_root_table_by_object(index_object);
-				skydome->update_draw_directx(command_list.Get(), index_object, MAX_CRV_SRV_BUFFER_NUMBER);
+				skydome->set_resource_views_and_draw(command_list.Get(), index_object, MAX_CRV_SRV_BUFFER_NUMBER);
 			}
 			index_object++;
 
@@ -1322,19 +1322,19 @@ namespace albedos {
 			command_list->SetGraphicsRootSignature(root_signature.Get());
 			command_list->SetPipelineState(pipeline_state_msaa.Get());
 
-			int index_object = 0;
-			for (albedos::Object& object : objects) {
-				set_constant_root_table_by_object(index_object);
-				object.update_draw_directx(command_list.Get(), index_object, MAX_CRV_SRV_BUFFER_NUMBER);
-				index_object++;
+			int num_object = 0;
+			for (albedos::Object* object : objects) {
+				set_constant_root_table_by_object(num_object);
+				object->set_resource_views_and_draw(command_list.Get(), num_object, MAX_CRV_SRV_BUFFER_NUMBER);
+				num_object++;
 			}
 
 			if (skydome) {
 				command_list->SetPipelineState(pipeline_state_skydome.Get());
-				set_constant_root_table_by_object(index_object);
-				skydome->update_draw_directx(command_list.Get(), index_object, MAX_CRV_SRV_BUFFER_NUMBER);
+				set_constant_root_table_by_object(num_object);
+				skydome->set_resource_views_and_draw(command_list.Get(), num_object, MAX_CRV_SRV_BUFFER_NUMBER);
 			}
-			index_object++;
+			num_object++;
 
 			set_resource_barrier(buffer_msaa_color_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 								 D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
@@ -1486,11 +1486,11 @@ namespace albedos {
 			hr = command_list->Reset(command_allocator.Get(), nullptr);
 			assert(SUCCEEDED(hr) && "Command List Reset[Depth]");
 		}
-		void set_constant_root_table_by_object(int object_index) {
+		void set_constant_root_table_by_object(int in_index) {
 			command_list->SetDescriptorHeaps(1, descriptor_heap_cbv_srv.GetAddressOf());
 			D3D12_GPU_DESCRIPTOR_HANDLE cbv_gpu_handle = descriptor_heap_cbv_srv->GetGPUDescriptorHandleForHeapStart();
 			UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			cbv_gpu_handle.ptr += cbv_descriptor_size * object_index * MAX_CRV_SRV_BUFFER_NUMBER;
+			cbv_gpu_handle.ptr += cbv_descriptor_size * in_index * MAX_CRV_SRV_BUFFER_NUMBER;
 			command_list->SetGraphicsRootDescriptorTable(0, cbv_gpu_handle);
 		}
 	};
