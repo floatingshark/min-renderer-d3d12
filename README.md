@@ -1,7 +1,8 @@
 # albedos
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)  
-A Rendering application via DirectX12 and ~~Vulkan~~ (not yet)  
-This is assumed to be compiled with LLVM clang compatible with MSVC.
+A simple rendering application with DirectX12 and ~~Vulkan~~ (not yet)  
+This project is configured by clang + GLFW + DirectX. Hence you can build this on vscode.  
+note : It is assumed to use LLVM clang MSVC compatible ver.
 
 # Dependencies
 Common

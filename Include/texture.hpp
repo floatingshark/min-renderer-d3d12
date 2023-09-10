@@ -48,7 +48,8 @@ namespace albedos {
 			unsigned char info[54];
 
 			if (!file) {
-				std::cout << "[Texture]Read Error : " << file_name << std::endl;
+				const char* name = strlen(file_name) == 0 ? "empty file name" : file_name;
+				std::cout << "[Texture]Read Error : " << name << std::endl;
 				return;
 			}
 

@@ -47,7 +47,7 @@ namespace albedos {
 			skydome			  = std::make_shared<albedos::Object>(device, heap);
 			skydome->name	  = "Sky Cube";
 			skydome->position = {0.f, 0.f, 0.f};
-			skydome->scale	  = {20.f, 20.f, 20.f};
+			skydome->scale	  = {30.f, 30.f, 30.f};
 			skydome->set_vertex_data(albedos::Shape::Type::Cube);
 			skydome->set_cubemap_data("Resource/studio_garden_4k.bmp");
 		}
