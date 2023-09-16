@@ -1,5 +1,6 @@
 #pragma once
 #include "constant.hpp"
+#include "shaders.hpp"
 #include "shape.hpp"
 #include "texture.hpp"
 #include <cassert>
@@ -47,12 +48,12 @@ namespace albedos {
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC					pipeline_state_desc;
 
 	public:
-		std::string	  name;
-		Texture::Type texture_type		 = Texture::Type::Monochrome;
-		float		  texture_color[4]	 = {1.f, 1.f, 1.f, 1.f};
-		std::string	  texture_file_name	 = "";
-		std::string	  cube_map_file_name = "";
-		wchar_t*	  shader_name		 = L"./Source/Shader/PhongShaders.hlsl";
+		std::string			   name;
+		albedos::Texture::Type texture_type		  = albedos::Texture::Type::Monochrome;
+		float				   texture_color[4]	  = {1.f, 1.f, 1.f, 1.f};
+		std::string			   texture_file_name  = "";
+		std::string			   cube_map_file_name = "";
+		albedos::Shaders::Type shader_type		  = albedos::Shaders::Type::Color;
 
 		glm::vec3 position		 = {0.f, 0.f, 0.f};
 		glm::vec3 rotation		 = {0.f, 0.f, 0.f};
@@ -143,7 +144,7 @@ namespace albedos {
 		inline ID3D12PipelineState* get_pipeline_state() { return pipeline_state.Get(); }
 
 		void set_shadow_buffer(ID3D12Resource* in_resource) { shadow_resource = in_resource; }
-		void set_vertex_data(Shape::Type in_type) {
+		void set_vertex_data(albedos::Shape::Type in_type) {
 			vertex_data.clear();
 			index_data.clear();
 
@@ -163,7 +164,7 @@ namespace albedos {
 
 			init_directx_contexts();
 		}
-		void set_texture_data(Texture::Type in_type) {
+		void set_texture_data(albedos::Texture::Type in_type) {
 			texture_data.clear();
 			texture_type = in_type;
 
@@ -207,8 +208,12 @@ namespace albedos {
 				assert(SUCCEEDED(hr) && "Write to Subrecource[CubeMap]");
 			}
 		}
-		void set_shader_name(wchar_t* in_name) { shader_name = in_name; }
-		void reset_render_pipeline() { init_directx_pipeline_state(); }
+
+		void reset_shader(albedos::Shaders::Type in_type) {
+			shader_type = in_type;
+			init_directx_pipeline_state();
+		}
+		void reset_render_pipeline_state() { init_directx_pipeline_state(); }
 
 	protected:
 		void init_directx_resources() {
@@ -380,7 +385,7 @@ namespace albedos {
 			Microsoft::WRL::ComPtr<ID3DBlob> vertex_shader;
 			Microsoft::WRL::ComPtr<ID3DBlob> pixel_shader;
 
-			// Stop When Shader Compile Error
+			const wchar_t* shader_name = albedos::Shaders::get_shader_name(shader_type);
 			hr = D3DCompileFromFile(shader_name, nullptr, nullptr, "VSMain", "vs_5_0", compile_flags, 0, &vertex_shader,
 									nullptr);
 			DIRECTX_ASSERT(hr, "Compile Vertex Shader");
@@ -480,7 +485,7 @@ namespace albedos {
 			hr = device->CreateGraphicsPipelineState(&pipeline_state_desc, IID_PPV_ARGS(&pipeline_state));
 			assert(SUCCEEDED(hr) && "Create Graphics Pipeline State");
 		}
-		// Constant Buffer 1 supports Scene Mutual Variables
+		// Constant Buffer 1 Supports Scene Mutual Variables
 		void update_directx_constant_resource_1(Constant::Scene scene) {
 			HRESULT hr;
 			void*	Mapped;
@@ -493,7 +498,7 @@ namespace albedos {
 			constant_resource[0]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
-		// Constant Buffer 2 supports Local Variables
+		// Constant Buffer 2 Supports Local Variables
 		void update_directx_constant_resource_2(Constant::Local local) {
 			HRESULT hr;
 			void*	Mapped;

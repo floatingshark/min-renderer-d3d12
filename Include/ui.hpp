@@ -100,9 +100,9 @@ namespace albedos {
 			if (ImGui::CollapsingHeader("Anti Aliasing")) {
 				if (ImGui::Checkbox("MSAA", &Global::is_enabled_msaa)) {
 					for (std::shared_ptr<albedos::Object> object : render_objects) {
-						object->reset_render_pipeline();
+						object->reset_render_pipeline_state();
 					}
-					skydome_object->reset_render_pipeline();
+					skydome_object->reset_render_pipeline_state();
 				}
 			}
 
@@ -160,6 +160,14 @@ namespace albedos {
 			ImGui::DragFloat3("Pos", (float*)&object->position, 0.1f, -10.0f, 10.0f, "%.2f");
 			ImGui::DragFloat3("Rot", (float*)&object->rotation, 0.1f, -10.0f, 10.0f, "%.2f");
 			ImGui::DragFloat3("Scl", (float*)&object->scale, 0.1f, -10.0f, 10.0f, "%.2f");
+
+			ImGui::SeparatorText("Shader");
+			const char* shader_items[]		= {"Color", "Phong", "Skydome"};
+			int			shader_item_current = (int)object->shader_type;
+			if (ImGui::Combo("Shaders", &shader_item_current, shader_items, IM_ARRAYSIZE(shader_items))) {
+				const albedos::Shaders::Type shader_type = (albedos::Shaders::Type)shader_item_current;
+				object->reset_shader(shader_type);
+			}
 
 			ImGui::SeparatorText("Material");
 			const char* tex_items[]		 = {"Mono", "Checker Board", "Image"};

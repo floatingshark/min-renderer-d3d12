@@ -41,6 +41,7 @@ namespace albedos {
 			}
 			return ret;
 		}
+		
 		static void read_bmp_file(const char* file_name, std::vector<byte>& out_texture) {
 
 			int			  i;
