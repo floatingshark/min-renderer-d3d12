@@ -73,7 +73,7 @@ namespace albedos {
 												 : "Unknown";
 			ImGui::SliderInt("API", &elem_graphics_int, 0, Element_COUNT - 1, elem_graphics_name);
 			ImGui::ColorEdit3("BG", Global::bg_color);
-			
+
 			if (ImGui::CollapsingHeader("View")) {
 				ImGui::DragFloat3("VPos", Global::view_position, 0.1f, -30.0f, 30.0f, "%.2f");
 				ImGui::DragFloat3("Look", Global::view_lookat, 0.1f, -10.0f, 10.0f, "%.2f");
@@ -95,7 +95,13 @@ namespace albedos {
 			}
 
 			if (ImGui::CollapsingHeader("Anti Aliasing")) {
-				ImGui::Checkbox("MSAA", &Global::is_enabled_msaa);
+				if (ImGui::Checkbox("MSAA", &Global::is_enabled_msaa)) {
+					if (Global::is_enabled_msaa) {
+						for (std::shared_ptr<albedos::Object> object : render_objects) {
+							object->reset_render_pipeline();
+						}
+					}
+				}
 			}
 
 			if (ImGui::CollapsingHeader("Postprocess")) {
@@ -135,7 +141,8 @@ namespace albedos {
 					ImGui::TableNextColumn();
 					sprintf(id_label, "%d", i);
 					bool is_selected = select_id == i;
-					if (ImGui::Selectable(id_label, is_selected, ImGuiSelectableFlags_SpanAllColumns, ImVec2(0.0f, 0.f))) {
+					if (ImGui::Selectable(id_label, is_selected, ImGuiSelectableFlags_SpanAllColumns,
+										  ImVec2(0.0f, 0.f))) {
 						select_id = i;
 					}
 					ImGui::TableNextColumn();

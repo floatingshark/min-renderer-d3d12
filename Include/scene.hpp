@@ -14,8 +14,11 @@ namespace albedos {
 			create_skydome();
 		};
 
-		ID3D12Device*								  device;
-		ID3D12DescriptorHeap*						  heap;
+	protected:
+		ID3D12Device*		  device;
+		ID3D12DescriptorHeap* heap;
+
+	public:
 		std::vector<std::shared_ptr<albedos::Object>> render_objects;
 		std::shared_ptr<albedos::Object>			  skydome;
 
@@ -50,6 +53,8 @@ namespace albedos {
 			skydome->scale	  = {30.f, 30.f, 30.f};
 			skydome->set_vertex_data(albedos::Shape::Type::Cube);
 			skydome->set_cubemap_data("Resource/studio_garden_4k.bmp");
+			skydome->set_shader_name(L"./Source/Shader/SkydomeShaders.hlsl");
+			skydome->reset_render_pipeline();
 		}
 	};
 } // namespace albedos

@@ -56,9 +56,9 @@ int main() {
 		constant->update();
 
 		for (std::shared_ptr<albedos::Object> object : scene->render_objects) {
-			object->update_resources(constant->get_scene(), constant->get_local());
+			object->update_directx_constant_resources(constant->get_scene(), constant->get_local());
 		}
-		scene->skydome->update_resources(constant->get_scene(), constant->get_local());
+		scene->skydome->update_directx_constant_resources(constant->get_scene(), constant->get_local());
 
 		ui->render();
 		directx->render();

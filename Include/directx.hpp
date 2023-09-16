@@ -25,14 +25,15 @@ namespace albedos {
 		DirectXA(HWND h) : hwnd(h) { init_directx(); }
 		~DirectXA() {}
 
-	private:
+	public:
 		UINT			  WIDTH						 = 800;
 		UINT			  HEIGHT					 = 600;
 		static const UINT NUM_FRAMES_IN_FLIGHT		 = 2;
 		static const bool USE_WARP_DEVICE			 = false;
 		static const UINT MAX_OBJECT_SIZE			 = 5;
 		static const UINT MAX_CRV_SRV_BUFFER_SIZE	 = 5;
-		const wchar_t*	  SHADER_NAME				 = L"./Source/Shader/PhongShaders.hlsl";
+		const wchar_t*	  SHADER_NAME_COLOR			 = L"./Source/Shader/ColorShaders.hlsl";
+		const wchar_t*	  SHADER_NAME_PHONG			 = L"./Source/Shader/PhongShaders.hlsl";
 		const wchar_t*	  SHADER_NAME_SHADOW_MAPPING = L"./Source/Shader/ShadowMappingShaders.hlsl";
 		const wchar_t*	  SHADER_NAME_POSTPROCESS	 = L"./Source/Shader/PostprocessShaders.hlsl";
 		const wchar_t*	  SHADER_NAME_SKYDOME		 = L"./Source/Shader/SkydomeShaders.hlsl";
@@ -90,10 +91,6 @@ namespace albedos {
 		Microsoft::WRL::ComPtr<ID3D12Resource>		 buffer_msaa_depth_texture;
 		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_rtv_msaa;
 		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_dsv_msaa;
-		Microsoft::WRL::ComPtr<ID3D12PipelineState>	 pipeline_state_msaa;
-
-		// Miscs
-		Microsoft::WRL::ComPtr<ID3D12PipelineState> pipeline_state_skydome;
 
 	protected:
 		// Initialize DirectX12 Functions
@@ -139,11 +136,6 @@ namespace albedos {
 			DIRECTX_LOG("Initialized Descriptor Heaps[MSAA]");
 			init_msaa_resources_and_target_view();
 			DIRECTX_LOG("Initialized Resources and Target Views[MSAA]");
-			init_pipeline_state_msaa();
-			DIRECTX_LOG("Initialized Pipeline States[MSAA]");
-
-			init_pipeline_state_skydome();
-			DIRECTX_LOG("Initialized Pipeline States[Skydome]");
 		}
 		void init_viewport() {
 			viewport.TopLeftX = 0.f;
@@ -451,11 +443,11 @@ namespace albedos {
 			Microsoft::WRL::ComPtr<ID3DBlob> pixel_shader;
 
 			// Stop When Shader Compile Error
-			hr = D3DCompileFromFile(SHADER_NAME, nullptr, nullptr, "VSMain", "vs_5_0", compile_flags, 0, &vertex_shader,
-									nullptr);
+			hr = D3DCompileFromFile(SHADER_NAME_COLOR, nullptr, nullptr, "VSMain", "vs_5_0", compile_flags, 0,
+									&vertex_shader, nullptr);
 			DIRECTX_ASSERT(hr, "Compile Vertex Shader");
-			hr = D3DCompileFromFile(SHADER_NAME, nullptr, nullptr, "PSMain", "ps_5_0", compile_flags, 0, &pixel_shader,
-									nullptr);
+			hr = D3DCompileFromFile(SHADER_NAME_COLOR, nullptr, nullptr, "PSMain", "ps_5_0", compile_flags, 0,
+									&pixel_shader, nullptr);
 			DIRECTX_ASSERT(hr, "Compile Pixel Shader");
 
 			// Vertex Layout
@@ -611,8 +603,8 @@ namespace albedos {
 			Microsoft::WRL::ComPtr<ID3DBlob> vertex_shader;
 			Microsoft::WRL::ComPtr<ID3DBlob> pixel_shader;
 
-			hr = D3DCompileFromFile(SHADER_NAME_SHADOW_MAPPING, nullptr, nullptr, "VSShadowMap", "vs_5_0", compile_flags, 0,
-									&vertex_shader, nullptr);
+			hr = D3DCompileFromFile(SHADER_NAME_SHADOW_MAPPING, nullptr, nullptr, "VSShadowMap", "vs_5_0",
+									compile_flags, 0, &vertex_shader, nullptr);
 			DIRECTX_ASSERT(hr, "Compile Vertex Shader");
 
 			D3D12_INPUT_ELEMENT_DESC desc_input_elements[] = {
@@ -956,222 +948,6 @@ namespace albedos {
 			handle_dsv_msaa = descriptor_heap_dsv_msaa->GetCPUDescriptorHandleForHeapStart();
 			device->CreateDepthStencilView(buffer_msaa_depth_texture.Get(), &dsv_desc_msaa, handle_dsv_msaa);
 		}
-		void init_pipeline_state_msaa() {
-			HRESULT hr;
-
-			UINT							 compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-			Microsoft::WRL::ComPtr<ID3DBlob> vertex_shader;
-			Microsoft::WRL::ComPtr<ID3DBlob> pixel_shader;
-
-			// Stop When Shader Compile Error
-			hr = D3DCompileFromFile(SHADER_NAME, nullptr, nullptr, "VSMain", "vs_5_0", compile_flags, 0, &vertex_shader,
-									nullptr);
-			DIRECTX_ASSERT(hr, "Compile Vertex Shader");
-			hr = D3DCompileFromFile(SHADER_NAME, nullptr, nullptr, "PSMain", "ps_5_0", compile_flags, 0, &pixel_shader,
-									nullptr);
-			DIRECTX_ASSERT(hr, "Compile Pixel Shader");
-
-			// Vertex Layout
-			D3D12_INPUT_ELEMENT_DESC desc_input_elements[] = {
-				{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-				{"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-				{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-				{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 40, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-			};
-
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC pipline_state_desc;
-			ZeroMemory(&pipline_state_desc, sizeof(pipline_state_desc));
-
-			// Shader Settings
-			pipline_state_desc.VS.pShaderBytecode = vertex_shader->GetBufferPointer();
-			pipline_state_desc.VS.BytecodeLength  = vertex_shader->GetBufferSize();
-			pipline_state_desc.HS.pShaderBytecode = nullptr;
-			pipline_state_desc.HS.BytecodeLength  = 0;
-			pipline_state_desc.DS.pShaderBytecode = nullptr;
-			pipline_state_desc.DS.BytecodeLength  = 0;
-			pipline_state_desc.GS.pShaderBytecode = nullptr;
-			pipline_state_desc.GS.BytecodeLength  = 0;
-			pipline_state_desc.PS.pShaderBytecode = pixel_shader->GetBufferPointer();
-			pipline_state_desc.PS.BytecodeLength  = pixel_shader->GetBufferSize();
-
-			// Input Layout Settings
-			pipline_state_desc.InputLayout.pInputElementDescs = desc_input_elements;
-			pipline_state_desc.InputLayout.NumElements		  = _countof(desc_input_elements);
-
-			// Sample Settings
-			pipline_state_desc.SampleDesc.Count	  = 4;
-			pipline_state_desc.SampleDesc.Quality = 0;
-			pipline_state_desc.SampleMask		  = UINT_MAX;
-
-			// Render Target Settings
-			pipline_state_desc.NumRenderTargets = 1;
-			pipline_state_desc.RTVFormats[0]	= DXGI_FORMAT_R8G8B8A8_UNORM;
-
-			// Primitive Topology Type Settings
-			pipline_state_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-
-			// Root Signature
-			pipline_state_desc.pRootSignature = root_signature.Get();
-
-			// Rasterizer State Settings
-			pipline_state_desc.RasterizerState.CullMode				 = D3D12_CULL_MODE_NONE;
-			pipline_state_desc.RasterizerState.FillMode				 = D3D12_FILL_MODE_SOLID;
-			pipline_state_desc.RasterizerState.FrontCounterClockwise = FALSE;
-			pipline_state_desc.RasterizerState.DepthBias			 = 0;
-			pipline_state_desc.RasterizerState.DepthBiasClamp		 = 0;
-			pipline_state_desc.RasterizerState.SlopeScaledDepthBias	 = 0;
-			pipline_state_desc.RasterizerState.DepthClipEnable		 = TRUE;
-			pipline_state_desc.RasterizerState.ConservativeRaster	 = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-			pipline_state_desc.RasterizerState.AntialiasedLineEnable = FALSE;
-			pipline_state_desc.RasterizerState.MultisampleEnable	 = FALSE;
-
-			// Blend State Settings
-			for (int i = 0; i < static_cast<int>(_countof(pipline_state_desc.BlendState.RenderTarget)); ++i) {
-				pipline_state_desc.BlendState.RenderTarget[i].BlendEnable			= FALSE;
-				pipline_state_desc.BlendState.RenderTarget[i].SrcBlend				= D3D12_BLEND_ONE;
-				pipline_state_desc.BlendState.RenderTarget[i].DestBlend				= D3D12_BLEND_ZERO;
-				pipline_state_desc.BlendState.RenderTarget[i].BlendOp				= D3D12_BLEND_OP_ADD;
-				pipline_state_desc.BlendState.RenderTarget[i].SrcBlendAlpha			= D3D12_BLEND_ONE;
-				pipline_state_desc.BlendState.RenderTarget[i].DestBlendAlpha		= D3D12_BLEND_ZERO;
-				pipline_state_desc.BlendState.RenderTarget[i].BlendOpAlpha			= D3D12_BLEND_OP_ADD;
-				pipline_state_desc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-				pipline_state_desc.BlendState.RenderTarget[i].LogicOpEnable			= FALSE;
-				pipline_state_desc.BlendState.RenderTarget[i].LogicOp				= D3D12_LOGIC_OP_CLEAR;
-			}
-			pipline_state_desc.BlendState.AlphaToCoverageEnable	 = FALSE;
-			pipline_state_desc.BlendState.IndependentBlendEnable = FALSE;
-
-			// Depth Stencil State Settings
-			pipline_state_desc.DepthStencilState.DepthEnable	  = TRUE; // Enable Depth Test
-			pipline_state_desc.DepthStencilState.DepthFunc		  = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-			pipline_state_desc.DepthStencilState.DepthWriteMask	  = D3D12_DEPTH_WRITE_MASK_ALL;
-			pipline_state_desc.DepthStencilState.StencilEnable	  = FALSE; // Disable Stencil Test
-			pipline_state_desc.DepthStencilState.StencilReadMask  = D3D12_DEFAULT_STENCIL_READ_MASK;
-			pipline_state_desc.DepthStencilState.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
-
-			pipline_state_desc.DepthStencilState.FrontFace.StencilFailOp	  = D3D12_STENCIL_OP_KEEP;
-			pipline_state_desc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-			pipline_state_desc.DepthStencilState.FrontFace.StencilPassOp	  = D3D12_STENCIL_OP_KEEP;
-			pipline_state_desc.DepthStencilState.FrontFace.StencilFunc		  = D3D12_COMPARISON_FUNC_ALWAYS;
-
-			pipline_state_desc.DepthStencilState.BackFace.StencilFailOp		 = D3D12_STENCIL_OP_KEEP;
-			pipline_state_desc.DepthStencilState.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-			pipline_state_desc.DepthStencilState.BackFace.StencilPassOp		 = D3D12_STENCIL_OP_KEEP;
-			pipline_state_desc.DepthStencilState.BackFace.StencilFunc		 = D3D12_COMPARISON_FUNC_ALWAYS;
-
-			pipline_state_desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-
-			hr = device->CreateGraphicsPipelineState(&pipline_state_desc, IID_PPV_ARGS(&pipeline_state_msaa));
-			assert(SUCCEEDED(hr) && "Create Graphics Pipeline State[MSAA]");
-		}
-		// Initialize Functions for Skydome
-		void init_pipeline_state_skydome() {
-			HRESULT hr;
-
-			UINT							 compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
-			Microsoft::WRL::ComPtr<ID3DBlob> vertex_shader;
-			Microsoft::WRL::ComPtr<ID3DBlob> pixel_shader;
-
-			// Stop When Shader Compile Error
-			hr = D3DCompileFromFile(SHADER_NAME_SKYDOME, nullptr, nullptr, "VSMain", "vs_5_0", compile_flags, 0,
-									&vertex_shader, nullptr);
-			DIRECTX_ASSERT(hr, "Compile Vertex Shader[Skydome]");
-			hr = D3DCompileFromFile(SHADER_NAME_SKYDOME, nullptr, nullptr, "PSMain", "ps_5_0", compile_flags, 0,
-									&pixel_shader, nullptr);
-			DIRECTX_ASSERT(hr, "Compile Pixel Shader[Skydome]");
-
-			// Vertex Layout
-			D3D12_INPUT_ELEMENT_DESC desc_input_elements[] = {
-				{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-				{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-
-			};
-
-			D3D12_GRAPHICS_PIPELINE_STATE_DESC pipline_state_desc;
-			ZeroMemory(&pipline_state_desc, sizeof(pipline_state_desc));
-
-			// Shader Settings
-			pipline_state_desc.VS.pShaderBytecode = vertex_shader->GetBufferPointer();
-			pipline_state_desc.VS.BytecodeLength  = vertex_shader->GetBufferSize();
-			pipline_state_desc.HS.pShaderBytecode = nullptr;
-			pipline_state_desc.HS.BytecodeLength  = 0;
-			pipline_state_desc.DS.pShaderBytecode = nullptr;
-			pipline_state_desc.DS.BytecodeLength  = 0;
-			pipline_state_desc.GS.pShaderBytecode = nullptr;
-			pipline_state_desc.GS.BytecodeLength  = 0;
-			pipline_state_desc.PS.pShaderBytecode = pixel_shader->GetBufferPointer();
-			pipline_state_desc.PS.BytecodeLength  = pixel_shader->GetBufferSize();
-
-			// Input Layout Settings
-			pipline_state_desc.InputLayout.pInputElementDescs = desc_input_elements;
-			pipline_state_desc.InputLayout.NumElements		  = _countof(desc_input_elements);
-
-			// Sample Settings
-			pipline_state_desc.SampleDesc.Count	  = 4;
-			pipline_state_desc.SampleDesc.Quality = 0;
-			pipline_state_desc.SampleMask		  = UINT_MAX;
-
-			// Render Target Settings
-			pipline_state_desc.NumRenderTargets = 1;
-			pipline_state_desc.RTVFormats[0]	= DXGI_FORMAT_R8G8B8A8_UNORM;
-
-			// Primitive Topology Type Settings
-			pipline_state_desc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-
-			// Root Signature
-			pipline_state_desc.pRootSignature = root_signature.Get();
-
-			// Rasterizer State Settings
-			pipline_state_desc.RasterizerState.CullMode				 = D3D12_CULL_MODE_NONE;
-			pipline_state_desc.RasterizerState.FillMode				 = D3D12_FILL_MODE_SOLID;
-			pipline_state_desc.RasterizerState.FrontCounterClockwise = FALSE;
-			pipline_state_desc.RasterizerState.DepthBias			 = 0;
-			pipline_state_desc.RasterizerState.DepthBiasClamp		 = 0;
-			pipline_state_desc.RasterizerState.SlopeScaledDepthBias	 = 0;
-			pipline_state_desc.RasterizerState.DepthClipEnable		 = TRUE;
-			pipline_state_desc.RasterizerState.ConservativeRaster	 = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
-			pipline_state_desc.RasterizerState.AntialiasedLineEnable = FALSE;
-			pipline_state_desc.RasterizerState.MultisampleEnable	 = FALSE;
-
-			// Blend State Settings
-			for (int i = 0; i < static_cast<int>(_countof(pipline_state_desc.BlendState.RenderTarget)); ++i) {
-				pipline_state_desc.BlendState.RenderTarget[i].BlendEnable			= FALSE;
-				pipline_state_desc.BlendState.RenderTarget[i].SrcBlend				= D3D12_BLEND_ONE;
-				pipline_state_desc.BlendState.RenderTarget[i].DestBlend				= D3D12_BLEND_ZERO;
-				pipline_state_desc.BlendState.RenderTarget[i].BlendOp				= D3D12_BLEND_OP_ADD;
-				pipline_state_desc.BlendState.RenderTarget[i].SrcBlendAlpha			= D3D12_BLEND_ONE;
-				pipline_state_desc.BlendState.RenderTarget[i].DestBlendAlpha		= D3D12_BLEND_ZERO;
-				pipline_state_desc.BlendState.RenderTarget[i].BlendOpAlpha			= D3D12_BLEND_OP_ADD;
-				pipline_state_desc.BlendState.RenderTarget[i].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
-				pipline_state_desc.BlendState.RenderTarget[i].LogicOpEnable			= FALSE;
-				pipline_state_desc.BlendState.RenderTarget[i].LogicOp				= D3D12_LOGIC_OP_CLEAR;
-			}
-			pipline_state_desc.BlendState.AlphaToCoverageEnable	 = FALSE;
-			pipline_state_desc.BlendState.IndependentBlendEnable = FALSE;
-
-			// Depth Stencil State Settings
-			pipline_state_desc.DepthStencilState.DepthEnable	  = TRUE; // Enable Depth Test
-			pipline_state_desc.DepthStencilState.DepthFunc		  = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-			pipline_state_desc.DepthStencilState.DepthWriteMask	  = D3D12_DEPTH_WRITE_MASK_ALL;
-			pipline_state_desc.DepthStencilState.StencilEnable	  = FALSE; // Disable Stencil Test
-			pipline_state_desc.DepthStencilState.StencilReadMask  = D3D12_DEFAULT_STENCIL_READ_MASK;
-			pipline_state_desc.DepthStencilState.StencilWriteMask = D3D12_DEFAULT_STENCIL_WRITE_MASK;
-
-			pipline_state_desc.DepthStencilState.FrontFace.StencilFailOp	  = D3D12_STENCIL_OP_KEEP;
-			pipline_state_desc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-			pipline_state_desc.DepthStencilState.FrontFace.StencilPassOp	  = D3D12_STENCIL_OP_KEEP;
-			pipline_state_desc.DepthStencilState.FrontFace.StencilFunc		  = D3D12_COMPARISON_FUNC_ALWAYS;
-
-			pipline_state_desc.DepthStencilState.BackFace.StencilFailOp		 = D3D12_STENCIL_OP_KEEP;
-			pipline_state_desc.DepthStencilState.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
-			pipline_state_desc.DepthStencilState.BackFace.StencilPassOp		 = D3D12_STENCIL_OP_KEEP;
-			pipline_state_desc.DepthStencilState.BackFace.StencilFunc		 = D3D12_COMPARISON_FUNC_ALWAYS;
-
-			pipline_state_desc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
-
-			hr = device->CreateGraphicsPipelineState(&pipline_state_desc, IID_PPV_ARGS(&pipeline_state_skydome));
-			assert(SUCCEEDED(hr) && "Create Graphics Pipeline State");
-		}
 
 	public:
 		void render() {
@@ -1232,18 +1008,18 @@ namespace albedos {
 			command_list->RSSetScissorRects(1, &rect_scissor_shadow);
 			command_list->OMSetRenderTargets(0, nullptr, TRUE, &handle_shadow);
 
-			command_list->SetGraphicsRootSignature(root_signature.Get());
-			command_list->SetPipelineState(pipeline_state_shadow.Get());
 			command_list->SetDescriptorHeaps(1, descriptor_heap_cbv_srv.GetAddressOf());
-
 			D3D12_CPU_DESCRIPTOR_HANDLE handle_cbv_srv = descriptor_heap_cbv_srv->GetCPUDescriptorHandleForHeapStart();
 			D3D12_GPU_DESCRIPTOR_HANDLE handle_gpu_cbv_srv =
 				descriptor_heap_cbv_srv->GetGPUDescriptorHandleForHeapStart();
 			const UINT cbv_descriptor_size =
 				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+			command_list->SetGraphicsRootSignature(root_signature.Get());
+			command_list->SetPipelineState(pipeline_state_shadow.Get());
 			for (albedos::Object* object : render_objects) {
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				object->update_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
+				object->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
@@ -1271,9 +1047,7 @@ namespace albedos {
 			command_list->ClearDepthStencilView(handle_dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 			if (flag_postprocess) {
-				const FLOAT clear_color_render_texture[4] = {Global::bg_color[0], Global::bg_color[1],
-															 Global::bg_color[2], Global::bg_color[3]};
-				command_list->ClearRenderTargetView(handle_rtv_render_texture, clear_color_render_texture, 0, nullptr);
+				command_list->ClearRenderTargetView(handle_rtv_render_texture, clear_color, 0, nullptr);
 			}
 
 			command_list->RSSetViewports(1, &viewport);
@@ -1284,10 +1058,7 @@ namespace albedos {
 				command_list->OMSetRenderTargets(1, &handle_rtv[rtv_index], TRUE, &handle_dsv);
 			}
 
-			command_list->SetGraphicsRootSignature(root_signature.Get());
-			command_list->SetPipelineState(pipeline_state_render.Get());
 			command_list->SetDescriptorHeaps(1, descriptor_heap_cbv_srv.GetAddressOf());
-
 			D3D12_CPU_DESCRIPTOR_HANDLE handle_cbv_srv = descriptor_heap_cbv_srv->GetCPUDescriptorHandleForHeapStart();
 			D3D12_GPU_DESCRIPTOR_HANDLE handle_gpu_cbv_srv =
 				descriptor_heap_cbv_srv->GetGPUDescriptorHandleForHeapStart();
@@ -1295,16 +1066,18 @@ namespace albedos {
 				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			for (albedos::Object* object : render_objects) {
+				command_list->SetGraphicsRootSignature(object->get_root_signature());
+				command_list->SetPipelineState(object->get_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				object->update_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
+				object->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
 
 			if (skydome && Global::is_enabled_skydome) {
-				command_list->SetPipelineState(pipeline_state_skydome.Get());
+				command_list->SetPipelineState(skydome->get_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				skydome->update_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
+				skydome->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
@@ -1334,10 +1107,7 @@ namespace albedos {
 			command_list->RSSetScissorRects(1, &rect_scissor);
 			command_list->OMSetRenderTargets(1, &handle_rtv_msaa, TRUE, &handle_dsv_msaa);
 
-			command_list->SetGraphicsRootSignature(root_signature.Get());
-			command_list->SetPipelineState(pipeline_state_msaa.Get());
 			command_list->SetDescriptorHeaps(1, descriptor_heap_cbv_srv.GetAddressOf());
-
 			D3D12_CPU_DESCRIPTOR_HANDLE handle_cbv_srv = descriptor_heap_cbv_srv->GetCPUDescriptorHandleForHeapStart();
 			D3D12_GPU_DESCRIPTOR_HANDLE handle_gpu_cbv_srv =
 				descriptor_heap_cbv_srv->GetGPUDescriptorHandleForHeapStart();
@@ -1345,16 +1115,19 @@ namespace albedos {
 				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			for (albedos::Object* object : render_objects) {
+				command_list->SetGraphicsRootSignature(object->get_root_signature());
+				command_list->SetPipelineState(object->get_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				object->update_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
+				object->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
 
 			if (skydome && Global::is_enabled_skydome) {
-				command_list->SetPipelineState(pipeline_state_skydome.Get());
+				command_list->SetGraphicsRootSignature(root_signature.Get());
+				command_list->SetPipelineState(skydome->get_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				skydome->update_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
+				skydome->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
@@ -1398,7 +1171,6 @@ namespace albedos {
 			command_list->SetGraphicsRootSignature(root_signature_postprocess.Get());
 			command_list->SetPipelineState(pipeline_state_postprocess.Get());
 
-			// Set Descriptor Heap for Postprocess
 			command_list->SetDescriptorHeaps(1, descriptor_heap_cbv_srv_postprocess.GetAddressOf());
 			D3D12_GPU_DESCRIPTOR_HANDLE cbv_srv_gpu_handle =
 				descriptor_heap_cbv_srv_postprocess->GetGPUDescriptorHandleForHeapStart();
@@ -1415,9 +1187,10 @@ namespace albedos {
 			render_texture_desc.Texture2D.PlaneSlice		  = 0;
 			render_texture_desc.Texture2D.ResourceMinLODClamp = 0.0F;
 			render_texture_desc.Shader4ComponentMapping		  = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			D3D12_CPU_DESCRIPTOR_HANDLE cbv_srv_cpu_handle =
+
+			D3D12_CPU_DESCRIPTOR_HANDLE handle_srv_cbv =
 				descriptor_heap_cbv_srv_postprocess->GetCPUDescriptorHandleForHeapStart();
-			device->CreateShaderResourceView(buffer_render_texture.Get(), &render_texture_desc, cbv_srv_cpu_handle);
+			device->CreateShaderResourceView(buffer_render_texture.Get(), &render_texture_desc, handle_srv_cbv);
 
 			command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 			command_list->DrawInstanced(6, 1, 0, 0);
