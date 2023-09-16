@@ -25,7 +25,6 @@ namespace albedos {
 		DirectXA(HWND h) : hwnd(h) { init_directx(); }
 		~DirectXA() {}
 
-	public:
 		UINT			  WIDTH						 = 800;
 		UINT			  HEIGHT					 = 600;
 		static const UINT NUM_FRAMES_IN_FLIGHT		 = 2;
@@ -38,7 +37,7 @@ namespace albedos {
 		const wchar_t*	  SHADER_NAME_POSTPROCESS	 = L"./Source/Shader/PostprocessShaders.hlsl";
 		const wchar_t*	  SHADER_NAME_SKYDOME		 = L"./Source/Shader/SkydomeShaders.hlsl";
 
-	protected:
+	private:
 		HWND		   hwnd;
 		UINT64		   frame_number = 1;
 		UINT		   rtv_index	= 0;
@@ -47,8 +46,8 @@ namespace albedos {
 		D3D12_VIEWPORT viewport_shadow;
 		D3D12_RECT	   rect_scissor_shadow;
 
-		std::vector<albedos::Object*> render_objects;
-		albedos::Object*			  skydome;
+		std::vector<albedos::Object*>	 render_objects;
+		std::shared_ptr<albedos::Object> skydome_object;
 
 		Microsoft::WRL::ComPtr<IDXGIFactory4>			  factory;
 		Microsoft::WRL::ComPtr<ID3D12Device>			  device;
@@ -92,7 +91,7 @@ namespace albedos {
 		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_rtv_msaa;
 		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_dsv_msaa;
 
-	protected:
+	private:
 		// Initialize DirectX12 Functions
 		void init_directx() {
 			init_viewport();
@@ -982,20 +981,22 @@ namespace albedos {
 
 			rtv_index = swap_chain->GetCurrentBackBufferIndex();
 		}
-		inline void set_render_objects(std::vector<std::shared_ptr<albedos::Object>> in_objects) {
+		
+		void set_render_objects(std::vector<std::shared_ptr<albedos::Object>> in_objects) {
 			render_objects.clear();
 			for (std::shared_ptr<albedos::Object> obj : in_objects) {
 				render_objects.push_back(obj.get());
 				obj->set_shadow_buffer(shadow_buffer.Get());
 			}
 		}
-		inline void					 set_render_skydome(albedos::Object* in_object) { skydome = in_object; }
+		void set_render_skydome(std::shared_ptr<albedos::Object> in_object) { skydome_object = in_object; }
+
 		inline UINT64				 get_num_frames() { return NUM_FRAMES_IN_FLIGHT; }
 		inline ID3D12Device*		 get_device() { return device.Get(); }
 		inline ID3D12DescriptorHeap* get_cbv_srv_heap() { return descriptor_heap_cbv_srv.Get(); }
 		inline ID3D12DescriptorHeap* get_imgui_heap() { return descriptor_heap_imgui.Get(); }
 
-	protected:
+	private:
 		void populate_command_list_shadow() {
 			HRESULT hr;
 
@@ -1074,10 +1075,10 @@ namespace albedos {
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
 
-			if (skydome && Global::is_enabled_skydome) {
-				command_list->SetPipelineState(skydome->get_pipeline_state());
+			if (skydome_object && Global::is_enabled_skydome) {
+				command_list->SetPipelineState(skydome_object->get_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				skydome->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
+				skydome_object->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
@@ -1123,11 +1124,11 @@ namespace albedos {
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
 
-			if (skydome && Global::is_enabled_skydome) {
+			if (skydome_object && Global::is_enabled_skydome) {
 				command_list->SetGraphicsRootSignature(root_signature.Get());
-				command_list->SetPipelineState(skydome->get_pipeline_state());
+				command_list->SetPipelineState(skydome_object->get_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				skydome->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
+				skydome_object->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}

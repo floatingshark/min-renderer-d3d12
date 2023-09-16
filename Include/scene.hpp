@@ -14,14 +14,15 @@ namespace albedos {
 			create_skydome();
 		};
 
-	protected:
+	private:
 		ID3D12Device*		  device;
 		ID3D12DescriptorHeap* heap;
 
 	public:
 		std::vector<std::shared_ptr<albedos::Object>> render_objects;
-		std::shared_ptr<albedos::Object>			  skydome;
+		std::shared_ptr<albedos::Object>			  skydome_object;
 
+	private:
 		/**
 		 * Scene 1
 		 * 1 Torus and 1 Plane
@@ -45,16 +46,18 @@ namespace albedos {
 
 			render_objects = {object_1, object_2};
 		}
-
+		/**
+		 * Skydome exists everty scene
+		 */
 		void create_skydome() {
-			skydome			  = std::make_shared<albedos::Object>(device, heap);
-			skydome->name	  = "Sky Cube";
-			skydome->position = {0.f, 0.f, 0.f};
-			skydome->scale	  = {30.f, 30.f, 30.f};
-			skydome->set_vertex_data(albedos::Shape::Type::Cube);
-			skydome->set_cubemap_data("Resource/studio_garden_4k.bmp");
-			skydome->set_shader_name(L"./Source/Shader/SkydomeShaders.hlsl");
-			skydome->reset_render_pipeline();
+			skydome_object			  = std::make_shared<albedos::Object>(device, heap);
+			skydome_object->name	  = "Sky Cube";
+			skydome_object->position = {0.f, 0.f, 0.f};
+			skydome_object->scale	  = {30.f, 30.f, 30.f};
+			skydome_object->set_vertex_data(albedos::Shape::Type::Cube);
+			skydome_object->set_cubemap_data("Resource/studio_garden_4k.bmp");
+			skydome_object->set_shader_name(L"./Source/Shader/SkydomeShaders.hlsl");
+			skydome_object->reset_render_pipeline();
 		}
 	};
 } // namespace albedos

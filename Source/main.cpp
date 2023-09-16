@@ -45,8 +45,9 @@ int main() {
 	MAIN_LOG("Initialized ImGui for DirectX");
 
 	directx->set_render_objects(scene->render_objects);
-	directx->set_render_skydome(scene->skydome.get());
+	directx->set_render_skydome(scene->skydome_object);
 	ui->set_render_objects(scene->render_objects);
+	ui->set_skydome_object(scene->skydome_object);
 	MAIN_LOG("Initialized Object to Renderer");
 
 	while (window->is_update()) {
@@ -58,7 +59,7 @@ int main() {
 		for (std::shared_ptr<albedos::Object> object : scene->render_objects) {
 			object->update_directx_constant_resources(constant->get_scene(), constant->get_local());
 		}
-		scene->skydome->update_directx_constant_resources(constant->get_scene(), constant->get_local());
+		scene->skydome_object->update_directx_constant_resources(constant->get_scene(), constant->get_local());
 
 		ui->render();
 		directx->render();

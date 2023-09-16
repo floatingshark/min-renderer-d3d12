@@ -16,6 +16,7 @@ namespace albedos {
 	class UI {
 	protected:
 		std::vector<std::shared_ptr<albedos::Object>> render_objects;
+		std::shared_ptr<albedos::Object>			  skydome_object;
 
 	public:
 		void init(GLFWwindow* window, ID3D12Device* device, UINT num_frames, ID3D12DescriptorHeap* heap_srv) {
@@ -37,9 +38,11 @@ namespace albedos {
 			ImGui_ImplGlfw_Shutdown();
 			ImGui::DestroyContext();
 		}
+
 		void set_render_objects(std::vector<std::shared_ptr<albedos::Object>> in_objects) {
 			render_objects = in_objects;
 		}
+		void set_skydome_object(std::shared_ptr<albedos::Object> in_object) { skydome_object = in_object; }
 
 	protected:
 		void init_imgui() {
@@ -96,11 +99,10 @@ namespace albedos {
 
 			if (ImGui::CollapsingHeader("Anti Aliasing")) {
 				if (ImGui::Checkbox("MSAA", &Global::is_enabled_msaa)) {
-					if (Global::is_enabled_msaa) {
-						for (std::shared_ptr<albedos::Object> object : render_objects) {
-							object->reset_render_pipeline();
-						}
+					for (std::shared_ptr<albedos::Object> object : render_objects) {
+						object->reset_render_pipeline();
 					}
+					skydome_object->reset_render_pipeline();
 				}
 			}
 
