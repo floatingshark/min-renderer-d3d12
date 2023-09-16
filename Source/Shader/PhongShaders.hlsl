@@ -92,14 +92,3 @@ float4 PSMain(PS_INPUT input) : SV_TARGET{
 
     return surf_color;
 }
-
-// For Shadow Mapping
-float4 VSShadowMap(VS_INPUT input) : SV_POSITION{
-
-	float4 pos = float4(input.Position, 1.0f);
-	pos = mul(WorldMatrix, pos);
-	pos = mul(LightViewMatrix, pos);
-    pos = mul(LightProjectionMatrix, pos);
-
-	return pos;
-}

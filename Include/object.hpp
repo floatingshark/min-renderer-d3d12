@@ -150,7 +150,8 @@ namespace albedos {
 			update_constant_resource_2(local);
 		}
 		// Update Resource Views and Draw Object
-		void set_resource_views_and_draw(ID3D12GraphicsCommandList* command_list, int index, int num_buffers) {
+		void update_resource_views_and_draw(ID3D12GraphicsCommandList*	 command_list,
+											D3D12_CPU_DESCRIPTOR_HANDLE in_handle) {
 			UINT					 size_vertices = sizeof(Shape::Vertex) * vertex_data.size();
 			const size_t			 size_indices  = sizeof(int) * index_data.size();
 			D3D12_VERTEX_BUFFER_VIEW vertex_view{};
@@ -168,17 +169,15 @@ namespace albedos {
 
 			// Consntant Buffer View Scene (Index 1)
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbuff_desc = {};
-			D3D12_CPU_DESCRIPTOR_HANDLE		cbv_handle = descriptor_heap_cbv->GetCPUDescriptorHandleForHeapStart();
-			UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 			cbuff_desc.BufferLocation = constant_resource[0]->GetGPUVirtualAddress();
 			cbuff_desc.SizeInBytes	  = CBUFFER_SIZE;
-			cbv_handle.ptr += index * num_buffers * cbv_descriptor_size;
-			device->CreateConstantBufferView(&cbuff_desc, cbv_handle);
+			UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			device->CreateConstantBufferView(&cbuff_desc, in_handle);
 
 			// Consntant Buffer View Local (Index 2)
 			cbuff_desc.BufferLocation = constant_resource[1]->GetGPUVirtualAddress();
-			cbv_handle.ptr += cbv_descriptor_size;
-			device->CreateConstantBufferView(&cbuff_desc, cbv_handle);
+			in_handle.ptr += cbv_descriptor_size;
+			device->CreateConstantBufferView(&cbuff_desc, in_handle);
 
 			// Shader Resource View Texture (Index 3)
 			D3D12_SHADER_RESOURCE_VIEW_DESC tex_desc{};
@@ -189,21 +188,21 @@ namespace albedos {
 			tex_desc.Texture2D.PlaneSlice		   = 0;
 			tex_desc.Texture2D.ResourceMinLODClamp = 0.0F;
 			tex_desc.Shader4ComponentMapping	   = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-			cbv_handle.ptr += cbv_descriptor_size;
-			device->CreateShaderResourceView(texture_resouce.Get(), &tex_desc, cbv_handle);
+			in_handle.ptr += cbv_descriptor_size;
+			device->CreateShaderResourceView(texture_resouce.Get(), &tex_desc, in_handle);
 
 			// Shader Resource View Depth Texture (Index 4)
 			tex_desc.Format = DXGI_FORMAT_R32_FLOAT;
-			cbv_handle.ptr += cbv_descriptor_size;
-			device->CreateShaderResourceView(shadow_resource.Get(), &tex_desc, cbv_handle);
+			in_handle.ptr += cbv_descriptor_size;
+			device->CreateShaderResourceView(shadow_resource.Get(), &tex_desc, in_handle);
 
 			// Shader Resource View Cube Map Texture (Index 5)
 			tex_desc.Format						 = DXGI_FORMAT_R8G8B8A8_UNORM;
 			tex_desc.ViewDimension				 = D3D12_SRV_DIMENSION_TEXTURECUBE;
 			tex_desc.TextureCube.MipLevels		 = 1;
 			tex_desc.TextureCube.MostDetailedMip = 0;
-			cbv_handle.ptr += cbv_descriptor_size;
-			device->CreateShaderResourceView(cube_map_resource.Get(), &tex_desc, cbv_handle);
+			in_handle.ptr += cbv_descriptor_size;
+			device->CreateShaderResourceView(cube_map_resource.Get(), &tex_desc, in_handle);
 
 			command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 			command_list->IASetVertexBuffers(0, 1, &vertex_view);
