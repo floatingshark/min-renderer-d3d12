@@ -140,8 +140,8 @@ namespace albedos {
 			command_list->DrawIndexedInstanced(index_data.size(), 1, 0, 0, 0);
 		}
 
-		inline ID3D12RootSignature* get_root_signature() { return root_signature.Get(); }
-		inline ID3D12PipelineState* get_pipeline_state() { return pipeline_state.Get(); }
+		inline ID3D12RootSignature* get_directx_root_signature() { return root_signature.Get(); }
+		inline ID3D12PipelineState* get_directx_pipeline_state() { return pipeline_state.Get(); }
 
 		void set_shadow_buffer(ID3D12Resource* in_resource) { shadow_resource = in_resource; }
 		void set_vertex_data(albedos::Shape::Type in_type) {
@@ -209,11 +209,11 @@ namespace albedos {
 			}
 		}
 
-		void reset_shader(albedos::Shaders::Type in_type) {
+		void reset_directx_shader(albedos::Shaders::Type in_type) {
 			shader_type = in_type;
 			init_directx_pipeline_state();
 		}
-		void reset_render_pipeline_state() { init_directx_pipeline_state(); }
+		void reset_directx_render_pipeline_state() { init_directx_pipeline_state(); }
 
 	protected:
 		void init_directx_resources() {

@@ -36,7 +36,7 @@ namespace albedos {
 			object_1->position = {0.f, 0.f, 1.5f};
 			object_1->rotation = {0.3f, 0.2f, 0.f};
 			object_1->set_vertex_data(albedos::Shape::Type::Torus);
-			object_1->reset_shader(albedos::Shaders::Type::Phong);
+			object_1->reset_directx_shader(albedos::Shaders::Type::Phong);
 
 			object_2->name				= "Scene1 Plane";
 			object_2->scale				= {5.f, 5.f, 1.f};
@@ -45,7 +45,7 @@ namespace albedos {
 			object_2->texture_color[2]	= 0.7f;
 			object_2->texture_file_name = "Resource/polystyrene_diff_1k.bmp";
 			object_2->set_texture_data(albedos::Texture::Type::Image);
-			object_2->reset_shader(albedos::Shaders::Type::Phong);
+			object_2->reset_directx_shader(albedos::Shaders::Type::Phong);
 
 			render_objects = {object_1, object_2};
 		}
@@ -59,7 +59,7 @@ namespace albedos {
 			skydome_object->scale	 = {30.f, 30.f, 30.f};
 			skydome_object->set_vertex_data(albedos::Shape::Type::Cube);
 			skydome_object->set_cubemap_data("Resource/studio_garden_4k.bmp");
-			skydome_object->reset_shader(albedos::Shaders::Type::Skydome);
+			skydome_object->reset_directx_shader(albedos::Shaders::Type::Skydome);
 		}
 	};
 } // namespace albedos

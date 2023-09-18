@@ -98,11 +98,11 @@ namespace albedos {
 			}
 
 			if (ImGui::CollapsingHeader("Anti Aliasing")) {
-				if (ImGui::Checkbox("MSAA", &Global::is_enabled_msaa)) {
+				if (ImGui::Checkbox("MSAA(Forward)", &Global::is_enabled_msaa)) {
 					for (std::shared_ptr<albedos::Object> object : render_objects) {
-						object->reset_render_pipeline_state();
+						object->reset_directx_render_pipeline_state();
 					}
-					skydome_object->reset_render_pipeline_state();
+					skydome_object->reset_directx_render_pipeline_state();
 				}
 			}
 
@@ -166,7 +166,7 @@ namespace albedos {
 			int			shader_item_current = (int)object->shader_type;
 			if (ImGui::Combo("Shaders", &shader_item_current, shader_items, IM_ARRAYSIZE(shader_items))) {
 				const albedos::Shaders::Type shader_type = (albedos::Shaders::Type)shader_item_current;
-				object->reset_shader(shader_type);
+				object->reset_directx_shader(shader_type);
 			}
 
 			ImGui::SeparatorText("Material");

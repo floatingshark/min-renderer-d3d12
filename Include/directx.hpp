@@ -32,7 +32,6 @@ namespace albedos {
 		static const UINT MAX_OBJECT_SIZE			 = 5;
 		static const UINT MAX_CRV_SRV_BUFFER_SIZE	 = 5;
 		const wchar_t*	  SHADER_NAME_COLOR			 = L"./Source/Shader/ColorShaders.hlsl";
-		const wchar_t*	  SHADER_NAME_PHONG			 = L"./Source/Shader/PhongShaders.hlsl";
 		const wchar_t*	  SHADER_NAME_SHADOW_MAPPING = L"./Source/Shader/ShadowMappingShaders.hlsl";
 		const wchar_t*	  SHADER_NAME_POSTPROCESS	 = L"./Source/Shader/PostprocessShaders.hlsl";
 		const wchar_t*	  SHADER_NAME_SKYDOME		 = L"./Source/Shader/SkydomeShaders.hlsl";
@@ -42,8 +41,8 @@ namespace albedos {
 		UINT64		   frame_number = 1;
 		UINT		   rtv_index	= 0;
 		D3D12_VIEWPORT viewport;
-		D3D12_RECT	   rect_scissor;
 		D3D12_VIEWPORT viewport_shadow;
+		D3D12_RECT	   rect_scissor;
 		D3D12_RECT	   rect_scissor_shadow;
 
 		std::vector<albedos::Object*>	 render_objects;
@@ -59,8 +58,8 @@ namespace albedos {
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	  descriptor_heap_cbv_srv;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	  descriptor_heap_dsv;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	  descriptor_heap_imgui;
-		Microsoft::WRL::ComPtr<ID3D12Resource>			  render_buffers[NUM_FRAMES_IN_FLIGHT];
-		Microsoft::WRL::ComPtr<ID3D12Resource>			  depth_buffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource>			  resource_render[NUM_FRAMES_IN_FLIGHT];
+		Microsoft::WRL::ComPtr<ID3D12Resource>			  resource_depth;
 		D3D12_CPU_DESCRIPTOR_HANDLE						  handle_rtv[NUM_FRAMES_IN_FLIGHT];
 		D3D12_CPU_DESCRIPTOR_HANDLE						  handle_dsv;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	  command_allocator;
@@ -70,14 +69,14 @@ namespace albedos {
 
 		// For Baking Depth to Texture
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_shadow;
-		Microsoft::WRL::ComPtr<ID3D12Resource>		 shadow_buffer;
+		Microsoft::WRL::ComPtr<ID3D12Resource>		 resource_shadow;
 		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_shadow;
 		Microsoft::WRL::ComPtr<ID3D12PipelineState>	 pipeline_state_shadow;
 
 		// For Baking Render to Texture and Postprocessing
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_rtv_render_texture;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_cbv_srv_postprocess;
-		Microsoft::WRL::ComPtr<ID3D12Resource>		 buffer_render_texture;
+		Microsoft::WRL::ComPtr<ID3D12Resource>		 resource_render_texture;
 		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_rtv_render_texture;
 		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_cbv_srv_postprocess;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>	 root_signature_postprocess;
@@ -86,10 +85,14 @@ namespace albedos {
 		// For MSAA
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_rtv_msaa;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_dsv_msaa;
-		Microsoft::WRL::ComPtr<ID3D12Resource>		 buffer_msaa_color_texture;
-		Microsoft::WRL::ComPtr<ID3D12Resource>		 buffer_msaa_depth_texture;
+		Microsoft::WRL::ComPtr<ID3D12Resource>		 resource_msaa_color_texture;
+		Microsoft::WRL::ComPtr<ID3D12Resource>		 resource_msaa_depth_texture;
 		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_rtv_msaa;
 		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_dsv_msaa;
+
+		// Diferred Rendering
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_rtv_diferred;
+		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_cbv_srv_uav_diferred;
 
 	private:
 		// Initialize DirectX12 Functions
@@ -135,6 +138,9 @@ namespace albedos {
 			DIRECTX_LOG("Initialized Descriptor Heaps[MSAA]");
 			init_msaa_resources_and_target_view();
 			DIRECTX_LOG("Initialized Resources and Target Views[MSAA]");
+
+			init_descriptor_heaps_deferred();
+			DIRECTX_LOG("Initialized Descriptor Heaps[Diferred]");
 		}
 		void init_viewport() {
 			viewport.TopLeftX = 0.f;
@@ -299,12 +305,12 @@ namespace albedos {
 			HRESULT hr;
 			UINT	rtv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 			for (UINT i = 0; i < NUM_FRAMES_IN_FLIGHT; i++) {
-				hr = swap_chain->GetBuffer(i, IID_PPV_ARGS(&render_buffers[i]));
+				hr = swap_chain->GetBuffer(i, IID_PPV_ARGS(&resource_render[i]));
 				assert(SUCCEEDED(hr) && "Get RTV Buffer");
 
 				handle_rtv[i] = descriptor_heap_rtv->GetCPUDescriptorHandleForHeapStart();
 				handle_rtv[i].ptr += rtv_descriptor_size * i;
-				device->CreateRenderTargetView(render_buffers[i].Get(), nullptr, handle_rtv[i]);
+				device->CreateRenderTargetView(resource_render[i].Get(), nullptr, handle_rtv[i]);
 			}
 		}
 		void init_depth_stencil_view() {
@@ -337,7 +343,7 @@ namespace albedos {
 			clear_value.DepthStencil.Stencil = 0;
 			hr = device->CreateCommittedResource(&heap_props, D3D12_HEAP_FLAG_NONE, &depth_desc,
 												 D3D12_RESOURCE_STATE_DEPTH_WRITE, &clear_value,
-												 IID_PPV_ARGS(&depth_buffer));
+												 IID_PPV_ARGS(&resource_depth));
 			assert(SUCCEEDED(hr) && "Create Committed Resource");
 
 			D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc;
@@ -348,7 +354,7 @@ namespace albedos {
 			dsv_desc.Texture2D.MipSlice = 0;
 			dsv_desc.Flags				= D3D12_DSV_FLAG_NONE;
 			handle_dsv					= descriptor_heap_dsv->GetCPUDescriptorHandleForHeapStart();
-			device->CreateDepthStencilView(depth_buffer.Get(), &dsv_desc, handle_dsv);
+			device->CreateDepthStencilView(resource_depth.Get(), &dsv_desc, handle_dsv);
 		}
 		void init_command_list() {
 			HRESULT h_result;
@@ -583,7 +589,7 @@ namespace albedos {
 
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
 												 D3D12_RESOURCE_STATE_GENERIC_READ, &clear_value,
-												 IID_PPV_ARGS(&shadow_buffer));
+												 IID_PPV_ARGS(&resource_shadow));
 			DIRECTX_ASSERT(hr, "Create Comitted Resource[Shadow]");
 
 			D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc{};
@@ -592,7 +598,7 @@ namespace albedos {
 			dsv_desc.Texture2D.MipSlice = 0;
 			dsv_desc.Flags				= D3D12_DSV_FLAG_NONE;
 			handle_shadow				= descriptor_heap_shadow->GetCPUDescriptorHandleForHeapStart();
-			device->CreateDepthStencilView(shadow_buffer.Get(), &dsv_desc, handle_shadow);
+			device->CreateDepthStencilView(resource_shadow.Get(), &dsv_desc, handle_shadow);
 			DIRECTX_ASSERT(hr, "Create Depth Stencil View[Shadow]");
 		}
 		void init_pipeline_state_shadow() {
@@ -727,12 +733,12 @@ namespace albedos {
 			// Create Render Texture Resource
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
 												 D3D12_RESOURCE_STATE_PRESENT, &clear_value,
-												 IID_PPV_ARGS(&buffer_render_texture));
+												 IID_PPV_ARGS(&resource_render_texture));
 			DIRECTX_ASSERT(hr, "Create Comitted Resource[Render Texture]");
 
 			// DIRECTX_ASSERT(hr, "Get Buffer[Render Texture]");
 			handle_rtv_render_texture = descriptor_heap_rtv_render_texture->GetCPUDescriptorHandleForHeapStart();
-			device->CreateRenderTargetView(buffer_render_texture.Get(), nullptr, handle_rtv_render_texture);
+			device->CreateRenderTargetView(resource_render_texture.Get(), nullptr, handle_rtv_render_texture);
 
 			// Create Shader Resource View for Postprocessing
 			D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc{};
@@ -741,7 +747,7 @@ namespace albedos {
 			srv_desc.ViewDimension			 = D3D12_SRV_DIMENSION_TEXTURE2D;
 			srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 			handle_cbv_srv_postprocess = descriptor_heap_cbv_srv_postprocess->GetCPUDescriptorHandleForHeapStart();
-			device->CreateShaderResourceView(buffer_render_texture.Get(), &srv_desc, handle_cbv_srv_postprocess);
+			device->CreateShaderResourceView(resource_render_texture.Get(), &srv_desc, handle_cbv_srv_postprocess);
 		}
 		void init_root_signature_postprocess() {
 			HRESULT							 hr;
@@ -918,7 +924,7 @@ namespace albedos {
 			// Create Render Texture Resource
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
 												 D3D12_RESOURCE_STATE_RESOLVE_SOURCE, &clear_value,
-												 IID_PPV_ARGS(&buffer_msaa_color_texture));
+												 IID_PPV_ARGS(&resource_msaa_color_texture));
 			DIRECTX_ASSERT(hr, "Create Comitted Resource[MSAA Color Texture]");
 
 			resource_desc.Format = DXGI_FORMAT_R32_TYPELESS;
@@ -931,7 +937,7 @@ namespace albedos {
 
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
 												 D3D12_RESOURCE_STATE_DEPTH_WRITE, &clear_value_depth,
-												 IID_PPV_ARGS(&buffer_msaa_depth_texture));
+												 IID_PPV_ARGS(&resource_msaa_depth_texture));
 			DIRECTX_ASSERT(hr, "Create Comitted Resource[MSAA Depth Texture]");
 
 			D3D12_RENDER_TARGET_VIEW_DESC rtv_desc_msaa{};
@@ -943,10 +949,32 @@ namespace albedos {
 			dsv_desc_msaa.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DMS;
 
 			handle_rtv_msaa = descriptor_heap_rtv_msaa->GetCPUDescriptorHandleForHeapStart();
-			device->CreateRenderTargetView(buffer_msaa_color_texture.Get(), &rtv_desc_msaa, handle_rtv_msaa);
+			device->CreateRenderTargetView(resource_msaa_color_texture.Get(), &rtv_desc_msaa, handle_rtv_msaa);
 			handle_dsv_msaa = descriptor_heap_dsv_msaa->GetCPUDescriptorHandleForHeapStart();
-			device->CreateDepthStencilView(buffer_msaa_depth_texture.Get(), &dsv_desc_msaa, handle_dsv_msaa);
+			device->CreateDepthStencilView(resource_msaa_depth_texture.Get(), &dsv_desc_msaa, handle_dsv_msaa);
 		}
+		// Initialize Functions for Diferred Rendering
+		void init_descriptor_heaps_deferred() {
+			HRESULT hr;
+
+			D3D12_DESCRIPTOR_HEAP_DESC desc_rtv = {};
+			desc_rtv.Flags						= D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+			desc_rtv.NumDescriptors				= 3;
+			desc_rtv.Type						= D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+			desc_rtv.NodeMask					= 0;
+			hr = device->CreateDescriptorHeap(&desc_rtv, IID_PPV_ARGS(&descriptor_heap_rtv_diferred));
+			DIRECTX_ASSERT(hr, "Create Descriptor Heap (RTV Diferred)");
+
+			D3D12_DESCRIPTOR_HEAP_DESC desc_cbv_srv_uav = {};
+			desc_cbv_srv_uav.Flags						= D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+			desc_cbv_srv_uav.NumDescriptors				= 5;
+			desc_cbv_srv_uav.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV; // SRV,UAVのデスクリプタをこのヒープに作る
+			desc_cbv_srv_uav.NodeMask = 0;
+			hr = device->CreateDescriptorHeap(&desc_cbv_srv_uav, IID_PPV_ARGS(&descriptor_heap_cbv_srv_uav_diferred));
+			DIRECTX_ASSERT(hr, "Create Descriptor Heap (CBV SRV UAV Diferred)");
+		}
+		void init_diferred_resources_and_target_view() {}
+
 
 	public:
 		void render() {
@@ -981,12 +1009,12 @@ namespace albedos {
 
 			rtv_index = swap_chain->GetCurrentBackBufferIndex();
 		}
-		
+
 		void set_render_objects(std::vector<std::shared_ptr<albedos::Object>> in_objects) {
 			render_objects.clear();
 			for (std::shared_ptr<albedos::Object> obj : in_objects) {
 				render_objects.push_back(obj.get());
-				obj->set_shadow_buffer(shadow_buffer.Get());
+				obj->set_shadow_buffer(resource_shadow.Get());
 			}
 		}
 		void set_render_skydome(std::shared_ptr<albedos::Object> in_object) { skydome_object = in_object; }
@@ -1000,7 +1028,7 @@ namespace albedos {
 		void populate_command_list_shadow() {
 			HRESULT hr;
 
-			set_resource_barrier(shadow_buffer.Get(), D3D12_RESOURCE_STATE_GENERIC_READ,
+			set_resource_barrier(resource_shadow.Get(), D3D12_RESOURCE_STATE_GENERIC_READ,
 								 D3D12_RESOURCE_STATE_DEPTH_WRITE);
 
 			command_list->ClearDepthStencilView(handle_shadow, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
@@ -1025,7 +1053,7 @@ namespace albedos {
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
 
-			set_resource_barrier(shadow_buffer.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE,
+			set_resource_barrier(resource_shadow.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE,
 								 D3D12_RESOURCE_STATE_GENERIC_READ);
 
 			hr = command_list->Close();
@@ -1035,10 +1063,10 @@ namespace albedos {
 			HRESULT	   hr;
 			const bool flag_postprocess = Global::is_enabled_postprocess;
 
-			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
+			set_resource_barrier(resource_render[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
 								 D3D12_RESOURCE_STATE_RENDER_TARGET);
 			if (flag_postprocess) {
-				set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_PRESENT,
+				set_resource_barrier(resource_render_texture.Get(), D3D12_RESOURCE_STATE_PRESENT,
 									 D3D12_RESOURCE_STATE_RENDER_TARGET);
 			}
 
@@ -1067,8 +1095,8 @@ namespace albedos {
 				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			for (albedos::Object* object : render_objects) {
-				command_list->SetGraphicsRootSignature(object->get_root_signature());
-				command_list->SetPipelineState(object->get_pipeline_state());
+				command_list->SetGraphicsRootSignature(object->get_directx_root_signature());
+				command_list->SetPipelineState(object->get_directx_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
 				object->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
@@ -1076,7 +1104,7 @@ namespace albedos {
 			}
 
 			if (skydome_object && Global::is_enabled_skydome) {
-				command_list->SetPipelineState(skydome_object->get_pipeline_state());
+				command_list->SetPipelineState(skydome_object->get_directx_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
 				skydome_object->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
@@ -1084,10 +1112,10 @@ namespace albedos {
 			}
 
 			if (flag_postprocess) {
-				set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+				set_resource_barrier(resource_render_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 									 D3D12_RESOURCE_STATE_PRESENT);
 			}
-			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+			set_resource_barrier(resource_render[rtv_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 								 D3D12_RESOURCE_STATE_PRESENT);
 
 			hr = command_list->Close();
@@ -1096,7 +1124,7 @@ namespace albedos {
 		void populate_command_list_msaa() {
 			HRESULT hr;
 
-			set_resource_barrier(buffer_msaa_color_texture.Get(), D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
+			set_resource_barrier(resource_msaa_color_texture.Get(), D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
 								 D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 			const FLOAT clear_color[4] = {Global::bg_color[0], Global::bg_color[1], Global::bg_color[2],
@@ -1116,8 +1144,8 @@ namespace albedos {
 				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			for (albedos::Object* object : render_objects) {
-				command_list->SetGraphicsRootSignature(object->get_root_signature());
-				command_list->SetPipelineState(object->get_pipeline_state());
+				command_list->SetGraphicsRootSignature(object->get_directx_root_signature());
+				command_list->SetPipelineState(object->get_directx_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
 				object->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
@@ -1126,29 +1154,29 @@ namespace albedos {
 
 			if (skydome_object && Global::is_enabled_skydome) {
 				command_list->SetGraphicsRootSignature(root_signature.Get());
-				command_list->SetPipelineState(skydome_object->get_pipeline_state());
+				command_list->SetPipelineState(skydome_object->get_directx_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
 				skydome_object->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
 
-			set_resource_barrier(buffer_msaa_color_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+			set_resource_barrier(resource_msaa_color_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 								 D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
 
 			if (!Global::is_enabled_postprocess) {
-				set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
+				set_resource_barrier(resource_render[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
 									 D3D12_RESOURCE_STATE_RESOLVE_DEST);
-				command_list->ResolveSubresource(render_buffers[rtv_index].Get(), 0, buffer_msaa_color_texture.Get(), 0,
-												 DXGI_FORMAT_R8G8B8A8_UNORM);
-				set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_RESOLVE_DEST,
+				command_list->ResolveSubresource(resource_render[rtv_index].Get(), 0, resource_msaa_color_texture.Get(),
+												 0, DXGI_FORMAT_R8G8B8A8_UNORM);
+				set_resource_barrier(resource_render[rtv_index].Get(), D3D12_RESOURCE_STATE_RESOLVE_DEST,
 									 D3D12_RESOURCE_STATE_PRESENT);
 			} else {
-				set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_PRESENT,
+				set_resource_barrier(resource_render_texture.Get(), D3D12_RESOURCE_STATE_PRESENT,
 									 D3D12_RESOURCE_STATE_RESOLVE_DEST);
-				command_list->ResolveSubresource(buffer_render_texture.Get(), 0, buffer_msaa_color_texture.Get(), 0,
+				command_list->ResolveSubresource(resource_render_texture.Get(), 0, resource_msaa_color_texture.Get(), 0,
 												 DXGI_FORMAT_R8G8B8A8_UNORM);
-				set_resource_barrier(buffer_render_texture.Get(), D3D12_RESOURCE_STATE_RESOLVE_DEST,
+				set_resource_barrier(resource_render_texture.Get(), D3D12_RESOURCE_STATE_RESOLVE_DEST,
 									 D3D12_RESOURCE_STATE_PRESENT);
 			}
 
@@ -1158,7 +1186,7 @@ namespace albedos {
 		void populate_command_list_postprocess() {
 			HRESULT hr;
 
-			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
+			set_resource_barrier(resource_render[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
 								 D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 			const FLOAT clear_color[4] = {Global::bg_color[0], Global::bg_color[1], Global::bg_color[2],
@@ -1191,12 +1219,12 @@ namespace albedos {
 
 			D3D12_CPU_DESCRIPTOR_HANDLE handle_srv_cbv =
 				descriptor_heap_cbv_srv_postprocess->GetCPUDescriptorHandleForHeapStart();
-			device->CreateShaderResourceView(buffer_render_texture.Get(), &render_texture_desc, handle_srv_cbv);
+			device->CreateShaderResourceView(resource_render_texture.Get(), &render_texture_desc, handle_srv_cbv);
 
 			command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 			command_list->DrawInstanced(6, 1, 0, 0);
 
-			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+			set_resource_barrier(resource_render[rtv_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 								 D3D12_RESOURCE_STATE_PRESENT);
 
 			hr = command_list->Close();
@@ -1205,7 +1233,7 @@ namespace albedos {
 		void populate_command_list_imgui() {
 			HRESULT hr;
 
-			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
+			set_resource_barrier(resource_render[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
 								 D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 			command_list->OMSetRenderTargets(1, &handle_rtv[rtv_index], TRUE, &handle_dsv);
@@ -1215,7 +1243,7 @@ namespace albedos {
 			command_list->SetDescriptorHeaps(1, descriptor_heap_imgui.GetAddressOf());
 			ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), command_list.Get());
 
-			set_resource_barrier(render_buffers[rtv_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+			set_resource_barrier(resource_render[rtv_index].Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 								 D3D12_RESOURCE_STATE_PRESENT);
 
 			hr = command_list->Close();
