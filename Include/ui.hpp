@@ -12,11 +12,11 @@
 #include <string>
 #include <vector>
 
-namespace albedos {
+namespace albedo {
 	class UI {
 	protected:
-		std::vector<std::shared_ptr<albedos::Object>> render_objects;
-		std::shared_ptr<albedos::Object>			  skydome_object;
+		std::vector<std::shared_ptr<albedo::Object>> render_objects;
+		std::shared_ptr<albedo::Object>			  skydome_object;
 
 	public:
 		void init(GLFWwindow* window, ID3D12Device* device, UINT num_frames, ID3D12DescriptorHeap* heap_srv) {
@@ -39,10 +39,10 @@ namespace albedos {
 			ImGui::DestroyContext();
 		}
 
-		void set_render_objects(std::vector<std::shared_ptr<albedos::Object>> in_objects) {
+		void set_render_objects(std::vector<std::shared_ptr<albedo::Object>> in_objects) {
 			render_objects = in_objects;
 		}
-		void set_skydome_object(std::shared_ptr<albedos::Object> in_object) { skydome_object = in_object; }
+		void set_skydome_object(std::shared_ptr<albedo::Object> in_object) { skydome_object = in_object; }
 
 	protected:
 		void init_imgui() {
@@ -99,7 +99,7 @@ namespace albedos {
 
 			if (ImGui::CollapsingHeader("Anti Aliasing")) {
 				if (ImGui::Checkbox("MSAA(Forward)", &Global::is_enabled_msaa)) {
-					for (std::shared_ptr<albedos::Object> object : render_objects) {
+					for (std::shared_ptr<albedo::Object> object : render_objects) {
 						object->reset_directx_render_pipeline_state();
 					}
 					skydome_object->reset_directx_render_pipeline_state();
@@ -107,11 +107,11 @@ namespace albedos {
 			}
 
 			if (ImGui::CollapsingHeader("Postprocess")) {
-				ImGui::Checkbox("Postprocessing", &albedos::Global::is_enabled_postprocess);
+				ImGui::Checkbox("Postprocessing", &albedo::Global::is_enabled_postprocess);
 			}
 
 			if (ImGui::CollapsingHeader("Skydome")) {
-				ImGui::Checkbox("Display Skydome", &albedos::Global::is_enabled_skydome);
+				ImGui::Checkbox("Display Skydome", &albedo::Global::is_enabled_skydome);
 			}
 
 			ImGui::End();
@@ -138,7 +138,7 @@ namespace albedos {
 
 				for (int i = 0; i < static_cast<int>(render_objects.size()); i++) {
 					char			 id_label[32];
-					albedos::Object* object = render_objects[i].get();
+					albedo::Object* object = render_objects[i].get();
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn();
 					sprintf(id_label, "%d", i);
@@ -153,7 +153,7 @@ namespace albedos {
 				ImGui::EndTable();
 			}
 
-			albedos::Object* object = render_objects[select_id].get();
+			albedo::Object* object = render_objects[select_id].get();
 			ImGui::Text("> %s", object->name.c_str());
 
 			ImGui::SeparatorText("Transform");
@@ -165,7 +165,7 @@ namespace albedos {
 			const char* shader_items[]		= {"Color", "Phong", "Skydome"};
 			int			shader_item_current = (int)object->shader_type;
 			if (ImGui::Combo("Shaders", &shader_item_current, shader_items, IM_ARRAYSIZE(shader_items))) {
-				const albedos::Shaders::Type shader_type = (albedos::Shaders::Type)shader_item_current;
+				const albedo::Shaders::Type shader_type = (albedo::Shaders::Type)shader_item_current;
 				object->reset_directx_shader(shader_type);
 			}
 
@@ -186,4 +186,4 @@ namespace albedos {
 			ImGui::End();
 		}
 	};
-} // namespace albedos
+} // namespace albedo

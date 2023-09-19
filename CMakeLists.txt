@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 #set(CMAKE_C_COMPILER c:/LLVM/bin/clang.exe)
 #set(CMAKE_CXX_COMPILER c:/LLVM/bin/clang.exe)
 
-project(albedos)
+project(albedo)
 
 add_definitions(-Wall -Wextra -g -std=c++17)
 

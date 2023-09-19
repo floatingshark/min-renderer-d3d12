@@ -13,7 +13,7 @@
 #include <vector>
 #include <wrl/client.h>
 
-namespace albedos {
+namespace albedo {
 	class Object {
 	public:
 		Object(ID3D12Device* device, ID3D12DescriptorHeap* heap_cbv) : device(device), descriptor_heap_cbv(heap_cbv) {
@@ -49,11 +49,11 @@ namespace albedos {
 
 	public:
 		std::string			   name;
-		albedos::Texture::Type texture_type		  = albedos::Texture::Type::Monochrome;
+		albedo::Texture::Type texture_type		  = albedo::Texture::Type::Monochrome;
 		float				   texture_color[4]	  = {1.f, 1.f, 1.f, 1.f};
 		std::string			   texture_file_name  = "";
 		std::string			   cube_map_file_name = "";
-		albedos::Shaders::Type shader_type		  = albedos::Shaders::Type::Color;
+		albedo::Shaders::Type shader_type		  = albedo::Shaders::Type::Color;
 
 		glm::vec3 position		 = {0.f, 0.f, 0.f};
 		glm::vec3 rotation		 = {0.f, 0.f, 0.f};
@@ -62,9 +62,9 @@ namespace albedos {
 
 	public:
 		void init_object_datum() {
-			albedos::Shape::create_plane(vertex_data, index_data);
+			albedo::Shape::create_plane(vertex_data, index_data);
 			byte color[4] = {255, 255, 255, 255};
-			texture_data  = albedos::Texture::create_monochromatic(TEXTURE_SIZE, color);
+			texture_data  = albedo::Texture::create_monochromatic(TEXTURE_SIZE, color);
 		}
 		void init_directx_contexts() {
 			init_directx_resources();
@@ -144,19 +144,19 @@ namespace albedos {
 		inline ID3D12PipelineState* get_directx_pipeline_state() { return pipeline_state.Get(); }
 
 		void set_shadow_buffer(ID3D12Resource* in_resource) { shadow_resource = in_resource; }
-		void set_vertex_data(albedos::Shape::Type in_type) {
+		void set_vertex_data(albedo::Shape::Type in_type) {
 			vertex_data.clear();
 			index_data.clear();
 
 			switch (in_type) {
 			case Shape::Type::Plane:
-				albedos::Shape::create_plane(vertex_data, index_data);
+				albedo::Shape::create_plane(vertex_data, index_data);
 				break;
 			case Shape::Type::Cube:
-				albedos::Shape::create_cube(vertex_data, index_data);
+				albedo::Shape::create_cube(vertex_data, index_data);
 				break;
 			case Shape::Type::Torus:
-				albedos::Shape::create_torus(vertex_data, index_data);
+				albedo::Shape::create_torus(vertex_data, index_data);
 				break;
 			default:
 				break;
@@ -164,7 +164,7 @@ namespace albedos {
 
 			init_directx_contexts();
 		}
-		void set_texture_data(albedos::Texture::Type in_type) {
+		void set_texture_data(albedo::Texture::Type in_type) {
 			texture_data.clear();
 			texture_type = in_type;
 
@@ -209,7 +209,7 @@ namespace albedos {
 			}
 		}
 
-		void reset_directx_shader(albedos::Shaders::Type in_type) {
+		void reset_directx_shader(albedo::Shaders::Type in_type) {
 			shader_type = in_type;
 			init_directx_pipeline_state();
 		}
@@ -385,7 +385,7 @@ namespace albedos {
 			Microsoft::WRL::ComPtr<ID3DBlob> vertex_shader;
 			Microsoft::WRL::ComPtr<ID3DBlob> pixel_shader;
 
-			const wchar_t* shader_name = albedos::Shaders::get_shader_name(shader_type);
+			const wchar_t* shader_name = albedo::Shaders::get_shader_name(shader_type);
 			hr = D3DCompileFromFile(shader_name, nullptr, nullptr, "VSMain", "vs_5_0", compile_flags, 0, &vertex_shader,
 									nullptr);
 			DIRECTX_ASSERT(hr, "Compile Vertex Shader");
@@ -521,4 +521,4 @@ namespace albedos {
 			local.specular_power = specular_power;
 		}
 	};
-} // namespace albedos
+} // namespace albedo

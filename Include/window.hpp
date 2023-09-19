@@ -6,7 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
-namespace albedos {
+namespace albedo {
 	class Window {
 	public:
 		Window() { init_window(); }
@@ -38,4 +38,4 @@ namespace albedos {
 			fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 		}
 	};
-} // namespace albedos
+} // namespace albedo

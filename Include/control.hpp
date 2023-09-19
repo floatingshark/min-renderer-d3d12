@@ -10,7 +10,7 @@
 #include <iostream>
 #include <vector>
 
-namespace albedos {
+namespace albedo {
 	class Control {
 	protected:
 		bool			   capture_mouse;
@@ -63,4 +63,4 @@ namespace albedos {
 			Global::view_position[2] = pos[2];
 		}
 	};
-} // namespace albedos
+} // namespace albedo

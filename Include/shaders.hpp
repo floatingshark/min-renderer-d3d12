@@ -5,23 +5,23 @@
 #include <iostream>
 #include <vector>
 
-namespace albedos {
+namespace albedo {
 	class Shaders {
 	public:
 		enum struct Type { Color, Phong, Skydome, Max };
 
 	public:
-		static const wchar_t* get_shader_name(albedos::Shaders::Type in_type) {
+		static const wchar_t* get_shader_name(albedo::Shaders::Type in_type) {
 			switch (in_type) {
-			case albedos::Shaders::Type::Color:
+			case albedo::Shaders::Type::Color:
 				return L"./Source/Shader/ColorShaders.hlsl";
-			case albedos::Shaders::Type::Phong:
+			case albedo::Shaders::Type::Phong:
 				return L"./Source/Shader/PhongShaders.hlsl";
-			case albedos::Shaders::Type::Skydome:
+			case albedo::Shaders::Type::Skydome:
 				return L"./Source/Shader/SkydomeShaders.hlsl";
 			default:
 				return L"./Source/Shader/ColorShaders.hlsl";
 			}
 		}
 	};
-} // namespace albedos
+} // namespace albedo

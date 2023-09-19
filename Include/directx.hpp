@@ -19,7 +19,7 @@
 #include <vector>
 #include <wrl/client.h>
 
-namespace albedos {
+namespace albedo {
 	class DirectXA {
 	public:
 		DirectXA(HWND h) : hwnd(h) { init_directx(); }
@@ -45,8 +45,8 @@ namespace albedos {
 		D3D12_RECT	   rect_scissor;
 		D3D12_RECT	   rect_scissor_shadow;
 
-		std::vector<albedos::Object*>	 render_objects;
-		std::shared_ptr<albedos::Object> skydome_object;
+		std::vector<albedo::Object*>	 render_objects;
+		std::shared_ptr<albedo::Object> skydome_object;
 
 		Microsoft::WRL::ComPtr<IDXGIFactory4>			  factory;
 		Microsoft::WRL::ComPtr<ID3D12Device>			  device;
@@ -1010,14 +1010,14 @@ namespace albedos {
 			rtv_index = swap_chain->GetCurrentBackBufferIndex();
 		}
 
-		void set_render_objects(std::vector<std::shared_ptr<albedos::Object>> in_objects) {
+		void set_render_objects(std::vector<std::shared_ptr<albedo::Object>> in_objects) {
 			render_objects.clear();
-			for (std::shared_ptr<albedos::Object> obj : in_objects) {
+			for (std::shared_ptr<albedo::Object> obj : in_objects) {
 				render_objects.push_back(obj.get());
 				obj->set_shadow_buffer(resource_shadow.Get());
 			}
 		}
-		void set_render_skydome(std::shared_ptr<albedos::Object> in_object) { skydome_object = in_object; }
+		void set_render_skydome(std::shared_ptr<albedo::Object> in_object) { skydome_object = in_object; }
 
 		inline UINT64				 get_num_frames() { return NUM_FRAMES_IN_FLIGHT; }
 		inline ID3D12Device*		 get_device() { return device.Get(); }
@@ -1046,7 +1046,7 @@ namespace albedos {
 
 			command_list->SetGraphicsRootSignature(root_signature.Get());
 			command_list->SetPipelineState(pipeline_state_shadow.Get());
-			for (albedos::Object* object : render_objects) {
+			for (albedo::Object* object : render_objects) {
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
 				object->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
@@ -1094,7 +1094,7 @@ namespace albedos {
 			const UINT cbv_descriptor_size =
 				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-			for (albedos::Object* object : render_objects) {
+			for (albedo::Object* object : render_objects) {
 				command_list->SetGraphicsRootSignature(object->get_directx_root_signature());
 				command_list->SetPipelineState(object->get_directx_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
@@ -1143,7 +1143,7 @@ namespace albedos {
 			const UINT cbv_descriptor_size =
 				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-			for (albedos::Object* object : render_objects) {
+			for (albedo::Object* object : render_objects) {
 				command_list->SetGraphicsRootSignature(object->get_directx_root_signature());
 				command_list->SetPipelineState(object->get_directx_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
@@ -1315,4 +1315,4 @@ namespace albedos {
 			command_list->SetGraphicsRootDescriptorTable(0, cbv_gpu_handle);
 		}
 	};
-} // namespace albedos
+} // namespace albedo

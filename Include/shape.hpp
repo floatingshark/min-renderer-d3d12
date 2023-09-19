@@ -4,7 +4,7 @@
 #include <math.h>
 #include <vector>
 
-namespace albedos {
+namespace albedo {
 	class Shape {
 	public:
 		typedef struct Vertex {
@@ -236,4 +236,4 @@ namespace albedos {
 			}
 		}
 	};
-} // namespace albedos
+} // namespace albedo

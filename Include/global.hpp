@@ -3,7 +3,7 @@
 #include <iostream>
 #include <vector>
 
-namespace albedos {
+namespace albedo {
 	class Global {
 	public:
 		static float bg_color[4];
@@ -40,4 +40,4 @@ namespace albedos {
 	bool Global::is_enabled_msaa		= true;
 	bool Global::is_enabled_postprocess = false;
 	bool Global::is_enabled_skydome		= true;
-} // namespace albedos
+} // namespace albedo

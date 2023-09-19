@@ -5,7 +5,7 @@
 #include <iostream>
 #include <vector>
 
-namespace albedos {
+namespace albedo {
 	class Texture {
 	public:
 		enum struct Type { Monochrome, CheckerBoard, Image, Max };
@@ -136,4 +136,4 @@ namespace albedos {
 			}
 		}
 	};
-} // namespace albedos
+} // namespace albedo

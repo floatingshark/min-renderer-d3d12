@@ -7,7 +7,7 @@
 #include <iostream>
 #include <vector>
 
-namespace albedos {
+namespace albedo {
 	class Constant {
 	public:
 		typedef struct Scene {
@@ -79,4 +79,4 @@ namespace albedos {
 		inline Constant::Scene& get_scene() { return scene; }
 		inline Constant::Local& get_local() { return local; }
 	};
-} // namespace albedos
+} // namespace albedo
