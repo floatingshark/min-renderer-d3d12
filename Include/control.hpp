@@ -1,12 +1,12 @@
 #pragma once
 #define GLM_FORCE_SWIZZLE
 #include "global.hpp"
+#include <External/glm/glm.hpp>
+#include <External/glm/gtc/matrix_transform.hpp>
+#include <External/glm/gtx/string_cast.hpp>
+#include <External/imgui/imgui.h>
+#include <External/imgui/imgui_impl_glfw.h>
 #include <cassert>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/string_cast.hpp>
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_glfw.h>
 #include <iostream>
 #include <vector>
 

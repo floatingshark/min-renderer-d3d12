@@ -2,12 +2,12 @@
 #include "global.hpp"
 #include "object.hpp"
 #include "texture.hpp"
-#include <GLFW/glfw3.h>
+#include <External/GLFW/glfw3.h>
+#include <External/imgui/imgui.h>
+#include <External/imgui/imgui_impl_dx12.h>
+#include <External/imgui/imgui_impl_glfw.h>
 #include <cassert>
 #include <d3d12.h>
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_dx12.h>
-#include <imgui/imgui_impl_glfw.h>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -16,7 +16,7 @@ namespace albedo {
 	class UI {
 	protected:
 		std::vector<std::shared_ptr<albedo::Object>> render_objects;
-		std::shared_ptr<albedo::Object>			  skydome_object;
+		std::shared_ptr<albedo::Object>				 skydome_object;
 
 	public:
 		void init(GLFWwindow* window, ID3D12Device* device, UINT num_frames, ID3D12DescriptorHeap* heap_srv) {
@@ -139,7 +139,7 @@ namespace albedo {
 				ImGui::TableHeadersRow();
 
 				for (int i = 0; i < static_cast<int>(render_objects.size()); i++) {
-					char			 id_label[32];
+					char			id_label[32];
 					albedo::Object* object = render_objects[i].get();
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn();

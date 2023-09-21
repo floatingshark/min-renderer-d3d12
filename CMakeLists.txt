@@ -7,13 +7,15 @@ project(albedo)
 
 add_definitions(-Wall -Wextra -g -std=c++17)
 
+include_directories(./)
 include_directories(./Include)
+include_directories(./External)
 
 link_directories(./Library/GLFW/lib-static-ucrt)
 link_directories(./Library/GLFW/lib-vc2022)
 
 FILE(GLOB main_sources Source/*.cpp)
-FILE(GLOB imgui_sources Include/imgui/*.cpp)
+FILE(GLOB imgui_sources External/imgui/*.cpp)
 
 add_executable(main ${main_sources} ${imgui_sources})
 

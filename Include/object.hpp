@@ -3,12 +3,12 @@
 #include "shaders.hpp"
 #include "shape.hpp"
 #include "texture.hpp"
+#include <External/glm/glm.hpp>
+#include <External/glm/gtc/matrix_transform.hpp>
+#include <External/glm/gtx/string_cast.hpp>
 #include <cassert>
 #include <d3d12.h>
 #include <d3dcompiler.h>
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/string_cast.hpp>
 #include <iostream>
 #include <vector>
 #include <wrl/client.h>
@@ -48,12 +48,12 @@ namespace albedo {
 		D3D12_GRAPHICS_PIPELINE_STATE_DESC					pipeline_state_desc;
 
 	public:
-		std::string			   name;
-		albedo::Texture::Type texture_type		  = albedo::Texture::Type::Monochrome;
-		float				   texture_color[4]	  = {1.f, 1.f, 1.f, 1.f};
-		std::string			   texture_file_name  = "";
-		std::string			   cube_map_file_name = "";
-		albedo::Shaders::Type shader_type		  = albedo::Shaders::Type::Color;
+		std::string			  name;
+		albedo::Texture::Type texture_type		 = albedo::Texture::Type::Monochrome;
+		float				  texture_color[4]	 = {1.f, 1.f, 1.f, 1.f};
+		std::string			  texture_file_name	 = "";
+		std::string			  cube_map_file_name = "";
+		albedo::Shaders::Type shader_type		 = albedo::Shaders::Type::Color;
 
 		glm::vec3 position		 = {0.f, 0.f, 0.f};
 		glm::vec3 rotation		 = {0.f, 0.f, 0.f};

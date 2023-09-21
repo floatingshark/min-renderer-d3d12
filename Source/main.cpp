@@ -11,11 +11,11 @@
 #include "shape.hpp"
 #include "ui.hpp"
 #include "window.hpp"
+#include <External/imgui/imgui.h>
+#include <External/imgui/imgui_impl_dx12.h>
+#include <External/imgui/imgui_impl_glfw.h>
 #include <cassert>
 #include <dxgi.h>
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_dx12.h>
-#include <imgui/imgui_impl_glfw.h>
 #include <iostream>
 #include <vector>
 

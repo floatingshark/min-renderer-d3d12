@@ -6,15 +6,15 @@
 #include "global.hpp"
 #include "object.hpp"
 #include "shape.hpp"
+#include <External/imgui/imgui.h>
+#include <External/imgui/imgui_impl_dx12.h>
+#include <External/imgui/imgui_impl_glfw.h>
 #include <cassert>
 #include <d3d12.h>
 #include <d3d12sdklayers.h>
 #include <d3d12shader.h>
 #include <d3dcompiler.h>
 #include <dxgi1_4.h>
-#include <imgui/imgui.h>
-#include <imgui/imgui_impl_dx12.h>
-#include <imgui/imgui_impl_glfw.h>
 #include <iostream>
 #include <vector>
 #include <wrl/client.h>
@@ -45,7 +45,7 @@ namespace albedo {
 		D3D12_RECT	   rect_scissor;
 		D3D12_RECT	   rect_scissor_shadow;
 
-		std::vector<albedo::Object*>	 render_objects;
+		std::vector<albedo::Object*>	render_objects;
 		std::shared_ptr<albedo::Object> skydome_object;
 
 		Microsoft::WRL::ComPtr<IDXGIFactory4>			  factory;
@@ -974,7 +974,6 @@ namespace albedo {
 			DIRECTX_ASSERT(hr, "Create Descriptor Heap (CBV SRV UAV Diferred)");
 		}
 		void init_diferred_resources_and_target_view() {}
-
 
 	public:
 		void render() {
