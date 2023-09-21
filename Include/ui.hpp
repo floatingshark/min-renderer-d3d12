@@ -65,9 +65,10 @@ namespace albedo {
 		 * Manipulate Scene Variables
 		 */
 		void window_1() {
-			ImGui::Begin("Control Panel");
+			ImGui::Begin("Scene Panel");
 
 			ImGui::Text("fps: %.1f", ImGui::GetIO().Framerate);
+			/*
 			enum Element_GraphicsAPI { Element_DirectX, Element_Vulkan, Element_COUNT };
 			static int	elem_graphics_int					= Element_DirectX;
 			const char* elems_graphics_names[Element_COUNT] = {"DirectX", "Vulkan"};
@@ -75,6 +76,7 @@ namespace albedo {
 												 ? elems_graphics_names[elem_graphics_int]
 												 : "Unknown";
 			ImGui::SliderInt("API", &elem_graphics_int, 0, Element_COUNT - 1, elem_graphics_name);
+			*/
 			ImGui::ColorEdit3("BG", Global::bg_color);
 
 			if (ImGui::CollapsingHeader("View")) {
