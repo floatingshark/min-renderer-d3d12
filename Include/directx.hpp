@@ -25,8 +25,8 @@ namespace albedo {
 		DirectXA(HWND h) : hwnd(h) { init_directx(); }
 		~DirectXA() {}
 
-		UINT			  WIDTH						 = 800;
-		UINT			  HEIGHT					 = 600;
+		UINT			  WIDTH						 = Global::window_width;
+		UINT			  HEIGHT					 = Global::window_height;
 		static const UINT NUM_FRAMES_IN_FLIGHT		 = 2;
 		static const bool USE_WARP_DEVICE			 = false;
 		static const UINT MAX_OBJECT_SIZE			 = 5;

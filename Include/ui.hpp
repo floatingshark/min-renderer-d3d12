@@ -18,6 +18,7 @@ namespace albedo {
 	protected:
 		std::vector<std::shared_ptr<albedo::Object>> render_objects;
 		std::shared_ptr<albedo::Object>				 skydome_object;
+		int											 selected_id = 0;
 
 	public:
 		void init(GLFWwindow* window, ID3D12Device* device, UINT num_frames, ID3D12DescriptorHeap* heap_srv) {
@@ -33,6 +34,7 @@ namespace albedo {
 			create_dock();
 			create_panel_1();
 			create_panel_2();
+			create_panel_3();
 		}
 		void render() { ImGui::Render(); }
 		void shutdown() {
@@ -90,8 +92,7 @@ namespace albedo {
 			ImGui::Text("fps: %.1f", ImGui::GetIO().Framerate);
 			ImGui::ColorEdit3("BG", Global::bg_color);
 
-			if (ImGui::TreeNode("View"))
-			{
+			if (ImGui::TreeNode("View")) {
 				ImGui::DragFloat3("VPos", Global::view_position, 0.1f, -30.0f, 30.0f, "%.2f");
 				ImGui::DragFloat3("Look", Global::view_lookat, 0.1f, -10.0f, 10.0f, "%.2f");
 				ImGui::DragFloat3("VUp", Global::view_up, 0.01f, -1.0f, 1.0f, "%.2f");
@@ -139,7 +140,6 @@ namespace albedo {
 		void create_panel_2() {
 			ImGui::Begin("Object");
 
-			static int		select_id		   = 0;
 			ImGuiTableFlags object_table_flags = ImGuiTableFlags_Resizable;
 			object_table_flags |= ImGuiTableFlags_Reorderable;
 			object_table_flags |= ImGuiTableFlags_Hideable;
@@ -162,10 +162,10 @@ namespace albedo {
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn();
 					sprintf(id_label, "%d", i);
-					bool is_selected = select_id == i;
+					bool is_selected = selected_id == i;
 					if (ImGui::Selectable(id_label, is_selected, ImGuiSelectableFlags_SpanAllColumns,
 										  ImVec2(0.0f, 0.f))) {
-						select_id = i;
+						selected_id = i;
 					}
 					ImGui::TableNextColumn();
 					ImGui::Text("%s", object->name.c_str());
@@ -173,8 +173,12 @@ namespace albedo {
 				ImGui::EndTable();
 			}
 
-			albedo::Object* object = render_objects[select_id].get();
-			ImGui::Text("> %s", object->name.c_str());
+			ImGui::End();
+		}
+		void create_panel_3(){
+			ImGui::Begin("Detail");
+
+			albedo::Object* object = render_objects[selected_id].get();
 
 			ImGui::SeparatorText("Transform");
 			ImGui::DragFloat3("Pos", (float*)&object->position, 0.1f, -10.0f, 10.0f, "%.2f");

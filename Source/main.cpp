@@ -4,7 +4,6 @@
 // #undef _DEBUG
 
 #include "constant.hpp"
-#include "control.hpp"
 #include "directx.hpp"
 #include "object.hpp"
 #include "scene.hpp"
@@ -31,9 +30,6 @@ int main() {
 	std::unique_ptr<albedo::Constant> constant = std::make_unique<albedo::Constant>();
 	MAIN_LOG("Prepared Constant Datum");
 
-	std::unique_ptr<albedo::Control> control = std::make_unique<albedo::Control>();
-	MAIN_LOG("Prepared User Control");
-
 	std::unique_ptr<albedo::Scene> scene =
 		std::make_unique<albedo::Scene>(directx->get_device(), directx->get_cbv_srv_heap());
 	MAIN_LOG("Prepared Scene Datum");
@@ -53,7 +49,6 @@ int main() {
 	while (window->is_update()) {
 		ui->update();
 		window->update();
-		control->update();
 		constant->update();
 
 		for (std::shared_ptr<albedo::Object> object : scene->render_objects) {

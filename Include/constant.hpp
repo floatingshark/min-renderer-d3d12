@@ -57,7 +57,7 @@ namespace albedo {
 				glm::lookAt(glm::vec3(Global::view_position[0], Global::view_position[1], Global::view_position[2]),
 							glm::vec3(Global::view_lookat[0], Global::view_lookat[1], Global::view_lookat[2]),
 							glm::vec3(Global::view_up[0], Global::view_up[1], Global::view_up[2]));
-			scene.projection_matrix = glm::perspective(glm::radians(Global::projection_FOV), 4.f / 3.f,
+			scene.projection_matrix = glm::perspective(glm::radians(Global::projection_FOV), ((float)Global::window_width / (float)Global::window_height),
 													   Global::projection_near, Global::projection_far);
 			scene.view_position =
 				glm::vec4(Global::view_position[0], Global::view_position[1], Global::view_position[2], 1.f);

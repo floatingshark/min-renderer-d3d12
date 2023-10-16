@@ -7,6 +7,9 @@ namespace albedo {
 	class Global {
 	public:
 		static float bg_color[4];
+		static int	 window_width;
+		static int	 window_height;
+
 		static float view_position[3];
 		static float view_lookat[3];
 		static float view_up[3];
@@ -24,7 +27,10 @@ namespace albedo {
 		static bool is_enabled_skydome;
 	};
 
-	float Global::bg_color[4]				= {0.725f, 0.788f, 0.788f, 1.f};
+	float Global::bg_color[4]	= {0.725f, 0.788f, 0.788f, 1.f};
+	int	  Global::window_width	= 1000;
+	int	  Global::window_height = 600;
+
 	float Global::view_position[3]			= {-0.f, -6.f, 4.f};
 	float Global::view_lookat[3]			= {0.f, 0.f, 1.5f};
 	float Global::view_up[3]				= {0.f, 0.f, 1.f};
