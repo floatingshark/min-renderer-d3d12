@@ -388,10 +388,8 @@ namespace albedo {
 			const wchar_t* shader_name = albedo::Shaders::get_shader_name(shader_type);
 			hr = D3DCompileFromFile(shader_name, nullptr, nullptr, "VSMain", "vs_5_0", compile_flags, 0, &vertex_shader,
 									nullptr);
-			DIRECTX_ASSERT(hr, "Compile Vertex Shader");
 			hr = D3DCompileFromFile(shader_name, nullptr, nullptr, "PSMain", "ps_5_0", compile_flags, 0, &pixel_shader,
 									nullptr);
-			DIRECTX_ASSERT(hr, "Compile Pixel Shader");
 
 			// Vertex Layout
 			D3D12_INPUT_ELEMENT_DESC desc_input_elements[] = {
