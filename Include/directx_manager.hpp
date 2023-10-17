@@ -3,9 +3,8 @@
 #define DIRECTX_ASSERT(hr, log_msg) assert(SUCCEEDED(hr) && log_msg);
 
 #include "constant.hpp"
-#include "global.hpp"
+#include "system_variables.hpp"
 #include "entity.hpp"
-#include "shape.hpp"
 #include <External/imgui/imgui.h>
 #include <External/imgui/imgui_impl_dx12.h>
 #include <External/imgui/imgui_impl_glfw.h>
@@ -17,17 +16,17 @@
 #include <dxgi1_4.h>
 #include <iostream>
 #include <vector>
-#include <window.hpp>
+#include <window_manager.hpp>
 #include <wrl/client.h>
 
 namespace albedo {
-	class DirectXA {
+	class DirectXManager {
 	public:
-		DirectXA() { construct_directx(); }
-		~DirectXA() {}
+		DirectXManager() { construct_directx(); }
+		~DirectXManager() {}
 
-		UINT WIDTH	= Global::window_width;
-		UINT HEIGHT = Global::window_height;
+		UINT WIDTH	= albedo::WindowManager::window_width;
+		UINT HEIGHT = albedo::WindowManager::window_height;
 
 		static const bool USE_WARP_DEVICE			 = false;
 		static const UINT MAX_OBJECT_SIZE			 = 5;
@@ -251,7 +250,7 @@ namespace albedo {
 			swapchain_desc.BufferDesc.Height = HEIGHT;
 			swapchain_desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 			swapchain_desc.SwapEffect		 = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-			swapchain_desc.OutputWindow		 = albedo::Window::hwnd;
+			swapchain_desc.OutputWindow		 = albedo::WindowManager::hwnd;
 			swapchain_desc.SampleDesc.Count	 = 1;
 			swapchain_desc.Windowed			 = TRUE;
 
@@ -727,10 +726,10 @@ namespace albedo {
 			resource_desc.Flags				 = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
 			clear_value.Format	 = DXGI_FORMAT_R8G8B8A8_UNORM;
-			clear_value.Color[0] = Global::bg_color[0];
-			clear_value.Color[1] = Global::bg_color[1];
-			clear_value.Color[2] = Global::bg_color[2];
-			clear_value.Color[3] = Global::bg_color[3];
+			clear_value.Color[0] = System::bg_color[0];
+			clear_value.Color[1] = System::bg_color[1];
+			clear_value.Color[2] = System::bg_color[2];
+			clear_value.Color[3] = System::bg_color[3];
 
 			// Create Render Texture Resource
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
@@ -918,10 +917,10 @@ namespace albedo {
 			resource_desc.Flags				 = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
 			clear_value.Format	 = DXGI_FORMAT_R8G8B8A8_UNORM;
-			clear_value.Color[0] = Global::bg_color[0];
-			clear_value.Color[1] = Global::bg_color[1];
-			clear_value.Color[2] = Global::bg_color[2];
-			clear_value.Color[3] = Global::bg_color[3];
+			clear_value.Color[0] = System::bg_color[0];
+			clear_value.Color[1] = System::bg_color[1];
+			clear_value.Color[2] = System::bg_color[2];
+			clear_value.Color[3] = System::bg_color[3];
 
 			// Create Render Texture Resource
 			hr = device->CreateCommittedResource(&heap_properties, D3D12_HEAP_FLAG_NONE, &resource_desc,
@@ -983,12 +982,12 @@ namespace albedo {
 
 			ID3D12CommandList* const p_command_list = command_list.Get();
 
-			if (Global::is_enabled_shadow_mapping) {
+			if (System::is_enabled_shadow_mapping) {
 				populate_command_list_shadow();
 				execute_command_list(p_command_list);
 			}
 
-			if (!Global::is_enabled_msaa) {
+			if (!System::is_enabled_msaa) {
 				populate_command_list_render();
 				execute_command_list(p_command_list);
 			} else {
@@ -997,7 +996,7 @@ namespace albedo {
 				execute_command_list(p_command_list);
 			}
 
-			if (Global::is_enabled_postprocess) {
+			if (System::is_enabled_postprocess) {
 				populate_command_list_postprocess();
 				execute_command_list(p_command_list);
 			}
@@ -1057,7 +1056,7 @@ namespace albedo {
 		}
 		void populate_command_list_render() {
 			HRESULT	   hr;
-			const bool flag_postprocess = Global::is_enabled_postprocess;
+			const bool flag_postprocess = System::is_enabled_postprocess;
 
 			set_resource_barrier(resource_render[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
 								 D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -1066,8 +1065,8 @@ namespace albedo {
 									 D3D12_RESOURCE_STATE_RENDER_TARGET);
 			}
 
-			const FLOAT clear_color[4] = {Global::bg_color[0], Global::bg_color[1], Global::bg_color[2],
-										  Global::bg_color[3]};
+			const FLOAT clear_color[4] = {System::bg_color[0], System::bg_color[1], System::bg_color[2],
+										  System::bg_color[3]};
 			command_list->ClearRenderTargetView(handle_rtv[rtv_index], clear_color, 0, nullptr);
 			command_list->ClearDepthStencilView(handle_dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
@@ -1077,7 +1076,7 @@ namespace albedo {
 
 			command_list->RSSetViewports(1, &viewport);
 			command_list->RSSetScissorRects(1, &rect_scissor);
-			if (Global::is_enabled_postprocess) {
+			if (System::is_enabled_postprocess) {
 				command_list->OMSetRenderTargets(1, &handle_rtv_render_texture, TRUE, &handle_dsv);
 			} else {
 				command_list->OMSetRenderTargets(1, &handle_rtv[rtv_index], TRUE, &handle_dsv);
@@ -1099,7 +1098,7 @@ namespace albedo {
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
 
-			if (skydome_entity && Global::is_enabled_skydome) {
+			if (skydome_entity && System::is_enabled_skydome) {
 				command_list->SetPipelineState(skydome_entity->get_directx_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
 				skydome_entity->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
@@ -1123,8 +1122,8 @@ namespace albedo {
 			set_resource_barrier(resource_msaa_color_texture.Get(), D3D12_RESOURCE_STATE_RESOLVE_SOURCE,
 								 D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-			const FLOAT clear_color[4] = {Global::bg_color[0], Global::bg_color[1], Global::bg_color[2],
-										  Global::bg_color[3]};
+			const FLOAT clear_color[4] = {System::bg_color[0], System::bg_color[1], System::bg_color[2],
+										  System::bg_color[3]};
 			command_list->ClearRenderTargetView(handle_rtv_msaa, clear_color, 0, nullptr);
 			command_list->ClearDepthStencilView(handle_dsv_msaa, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
@@ -1148,7 +1147,7 @@ namespace albedo {
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
 
-			if (skydome_entity && Global::is_enabled_skydome) {
+			if (skydome_entity && System::is_enabled_skydome) {
 				command_list->SetGraphicsRootSignature(root_signature.Get());
 				command_list->SetPipelineState(skydome_entity->get_directx_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
@@ -1160,7 +1159,7 @@ namespace albedo {
 			set_resource_barrier(resource_msaa_color_texture.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 								 D3D12_RESOURCE_STATE_RESOLVE_SOURCE);
 
-			if (!Global::is_enabled_postprocess) {
+			if (!System::is_enabled_postprocess) {
 				set_resource_barrier(resource_render[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
 									 D3D12_RESOURCE_STATE_RESOLVE_DEST);
 				command_list->ResolveSubresource(resource_render[rtv_index].Get(), 0, resource_msaa_color_texture.Get(),
@@ -1185,8 +1184,8 @@ namespace albedo {
 			set_resource_barrier(resource_render[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
 								 D3D12_RESOURCE_STATE_RENDER_TARGET);
 
-			const FLOAT clear_color[4] = {Global::bg_color[0], Global::bg_color[1], Global::bg_color[2],
-										  Global::bg_color[3]};
+			const FLOAT clear_color[4] = {System::bg_color[0], System::bg_color[1], System::bg_color[2],
+										  System::bg_color[3]};
 			command_list->ClearRenderTargetView(handle_rtv[rtv_index], clear_color, 0, nullptr);
 
 			command_list->RSSetViewports(1, &viewport);
@@ -1312,9 +1311,9 @@ namespace albedo {
 		}
 	};
 
-	Microsoft::WRL::ComPtr<ID3D12Device>		 DirectXA::device				   = nullptr;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXA::descriptor_heap_rtv	   = nullptr;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXA::descriptor_heap_cbv_srv = nullptr;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXA::descriptor_heap_dsv	   = nullptr;
-	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXA::descriptor_heap_imgui   = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Device>		 DirectXManager::device				   = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXManager::descriptor_heap_rtv	   = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXManager::descriptor_heap_cbv_srv = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXManager::descriptor_heap_dsv	   = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXManager::descriptor_heap_imgui   = nullptr;
 } // namespace albedo

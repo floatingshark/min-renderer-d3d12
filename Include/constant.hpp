@@ -1,11 +1,13 @@
 #pragma once
-#include "global.hpp"
+#include "camera_manager.hpp"
+#include "system_variables.hpp"
 #include <External/glm/glm.hpp>
 #include <External/glm/gtc/matrix_transform.hpp>
 #include <External/glm/gtx/string_cast.hpp>
 #include <cassert>
 #include <iostream>
 #include <vector>
+#include <window_manager.hpp>
 
 namespace albedo {
 	class Constant {
@@ -53,28 +55,36 @@ namespace albedo {
 			local.specular_power = 1.f;
 		}
 		void update() {
-			scene.view_matrix =
-				glm::lookAt(glm::vec3(Global::view_position[0], Global::view_position[1], Global::view_position[2]),
-							glm::vec3(Global::view_lookat[0], Global::view_lookat[1], Global::view_lookat[2]),
-							glm::vec3(Global::view_up[0], Global::view_up[1], Global::view_up[2]));
-			scene.projection_matrix = glm::perspective(glm::radians(Global::projection_FOV), ((float)Global::window_width / (float)Global::window_height),
-													   Global::projection_near, Global::projection_far);
+			scene.view_matrix = glm::lookAt(
+				glm::vec3(albedo::CameraManager::camera_position[0], albedo::CameraManager::camera_position[1],
+						  albedo::CameraManager::camera_position[2]),
+				glm::vec3(albedo::CameraManager::camera_lookat[0], albedo::CameraManager::camera_lookat[1],
+						  albedo::CameraManager::camera_lookat[2]),
+				glm::vec3(albedo::CameraManager::camera_up[0], albedo::CameraManager::camera_up[1],
+						  albedo::CameraManager::camera_up[2]));
+			scene.projection_matrix = glm::perspective(
+				glm::radians(albedo::CameraManager::projection_FOV),
+				((float)albedo::WindowManager::window_width / (float)albedo::WindowManager::window_height),
+				albedo::CameraManager::projection_near, albedo::CameraManager::projection_far);
 			scene.view_position =
-				glm::vec4(Global::view_position[0], Global::view_position[1], Global::view_position[2], 1.f);
+				glm::vec4(albedo::CameraManager::camera_position[0], albedo::CameraManager::camera_position[1],
+						  albedo::CameraManager::camera_position[2], 1.f);
 
 			scene.light_position =
-				glm::vec4(Global::light_position[0], Global::light_position[1], Global::light_position[2], 1.f);
-			scene.light_ambient = glm::vec4(Global::light_ambient[0], Global::light_ambient[1],
-											Global::light_ambient[2], Global::light_ambient[3]);
+				glm::vec4(System::light_position[0], System::light_position[1], System::light_position[2], 1.f);
+			scene.light_ambient = glm::vec4(System::light_ambient[0], System::light_ambient[1],
+											System::light_ambient[2], System::light_ambient[3]);
 			scene.light_view_matrix =
-				glm::lookAt(glm::vec3(Global::light_position[0], Global::light_position[1], Global::light_position[2]),
-							glm::vec3(Global::view_lookat[0], Global::view_lookat[1], Global::view_lookat[2]),
-							glm::vec3(Global::view_up[0], Global::view_up[1], -Global::view_up[2]));
+				glm::lookAt(glm::vec3(System::light_position[0], System::light_position[1], System::light_position[2]),
+							glm::vec3(albedo::CameraManager::camera_lookat[0], albedo::CameraManager::camera_lookat[1],
+									  albedo::CameraManager::camera_lookat[2]),
+							glm::vec3(albedo::CameraManager::camera_up[0], albedo::CameraManager::camera_up[1],
+									  -albedo::CameraManager::camera_up[2]));
 			scene.light_projection_matrix = glm::ortho<float>(-10, 10, -10, 10, -100, 100);
-			scene.light_intensity		  = Global::light_intensity;
+			scene.light_intensity		  = System::light_intensity;
 
-			scene.is_enabled_shadow_mapping = Global::is_enabled_shadow_mapping;
-			scene.shadow_mapping_bias		= Global::shadow_mapping_bias;
+			scene.is_enabled_shadow_mapping = System::is_enabled_shadow_mapping;
+			scene.shadow_mapping_bias		= System::shadow_mapping_bias;
 		}
 
 		inline Constant::World& get_scene() { return scene; }

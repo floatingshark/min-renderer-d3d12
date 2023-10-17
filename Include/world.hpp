@@ -1,17 +1,16 @@
 #pragma once
 #include "entity.hpp"
-#include "shaders.hpp"
-#include "shape.hpp"
+#include "entity_shaders.hpp"
+#include "entity_shapes.hpp"
 #include "texture.hpp"
 #include <d3d12.h>
-#include <directx.hpp>
 #include <iostream>
 #include <vector>
 
 namespace albedo {
 	class World {
 	public:
-		World() {
+		World(ID3D12Device* device, ID3D12DescriptorHeap* heap) : device(device), heap(heap) {
 			create_scene_1();
 			create_skydome();
 		};
@@ -19,14 +18,14 @@ namespace albedo {
 		static std::vector<std::shared_ptr<albedo::Entity>> get_entities() { return entities; }
 		static std::shared_ptr<albedo::Entity>				get_skydome_entity() { return skydome_entity; }
 
+		ID3D12Device*		  device;
+		ID3D12DescriptorHeap* heap;
+
 	private:
 		static std::vector<std::shared_ptr<albedo::Entity>> entities;
 		static std::shared_ptr<albedo::Entity>				skydome_entity;
 
 		void create_scene_1() {
-			ID3D12Device*		  device = albedo::DirectXA::device.Get();
-			ID3D12DescriptorHeap* heap	 = albedo::DirectXA::descriptor_heap_cbv_srv.Get();
-
 			std::shared_ptr<albedo::Entity> object_1 = std::make_shared<albedo::Entity>(device, heap);
 			std::shared_ptr<albedo::Entity> object_2 = std::make_shared<albedo::Entity>(device, heap);
 
@@ -48,9 +47,6 @@ namespace albedo {
 			entities = {object_1, object_2};
 		}
 		void create_skydome() {
-			ID3D12Device*		  device = albedo::DirectXA::device.Get();
-			ID3D12DescriptorHeap* heap	 = albedo::DirectXA::descriptor_heap_cbv_srv.Get();
-
 			skydome_entity			 = std::make_shared<albedo::Entity>(device, heap);
 			skydome_entity->name	 = "Sky Cube";
 			skydome_entity->position = {0.f, 0.f, 0.f};

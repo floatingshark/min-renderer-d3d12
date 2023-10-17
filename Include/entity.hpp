@@ -1,7 +1,7 @@
 #pragma once
 #include "constant.hpp"
-#include "shaders.hpp"
-#include "shape.hpp"
+#include "entity_shaders.hpp"
+#include "entity_shapes.hpp"
 #include "texture.hpp"
 #include <External/glm/glm.hpp>
 #include <External/glm/gtc/matrix_transform.hpp>
@@ -418,7 +418,7 @@ namespace albedo {
 			pipeline_state_desc.InputLayout.NumElements		   = _countof(desc_input_elements);
 
 			// Sample Settings
-			pipeline_state_desc.SampleDesc.Count   = Global::is_enabled_msaa ? 4 : 1;
+			pipeline_state_desc.SampleDesc.Count   = System::is_enabled_msaa ? 4 : 1;
 			pipeline_state_desc.SampleDesc.Quality = 0;
 			pipeline_state_desc.SampleMask		   = UINT_MAX;
 

@@ -1,35 +1,31 @@
+#include "camera_manager.hpp"
 #include "constant.hpp"
+#include "directx_manager.hpp"
 #include "entity.hpp"
-#include "global.hpp"
+#include "system_variables.hpp"
 #include "texture.hpp"
+#include "window_manager.hpp"
+#include "world.hpp"
 #include <External/GLFW/glfw3.h>
 #include <External/imgui/imgui.h>
 #include <External/imgui/imgui_impl_dx12.h>
 #include <External/imgui/imgui_impl_glfw.h>
 #include <External/imgui/imgui_internal.h>
-#include <cassert>
 #include <d3d12.h>
-#include <directx.hpp>
 #include <iostream>
 #include <string>
 #include <vector>
-#include <window.hpp>
-#include <world.hpp>
 
 namespace albedo {
-	class GUI {
+	class GUIManager {
 	public:
-		GUI() { construct(); }
+		GUIManager() { construct(); }
 
 		void construct() {
-			GLFWwindow*			  window	 = albedo::Window::window_ptr;
-			ID3D12Device*		  device	 = albedo::DirectXA::device.Get();
-			UINT				  num_frames = albedo::DirectXA::NUM_FRAMES_IN_FLIGHT;
-			ID3D12DescriptorHeap* heap_imgui = albedo::DirectXA::descriptor_heap_imgui.Get();
-
 			init_imgui();
-			init_imgui_glfw(window);
-			init_imgui_directX(device, num_frames, heap_imgui);
+			init_imgui_glfw(albedo::WindowManager::window_ptr);
+			init_imgui_directX(albedo::DirectXManager::device.Get(), albedo::DirectXManager::NUM_FRAMES_IN_FLIGHT,
+							   albedo::DirectXManager::descriptor_heap_imgui.Get());
 		}
 		void update() {
 			ImGui_ImplDX12_NewFrame();
@@ -48,7 +44,7 @@ namespace albedo {
 			ImGui::DestroyContext();
 		}
 
-	protected:
+	private:
 		int selected_id = 0;
 
 		void init_imgui() {
@@ -92,33 +88,33 @@ namespace albedo {
 			ImGui::Begin("World", nullptr, panel_1_flags);
 
 			ImGui::Text("fps: %.1f", ImGui::GetIO().Framerate);
-			ImGui::ColorEdit3("BG", Global::bg_color);
+			ImGui::ColorEdit3("BG", System::bg_color);
 
-			if (ImGui::TreeNode("View")) {
-				ImGui::DragFloat3("VPos", Global::view_position, 0.1f, -30.0f, 30.0f, "%.2f");
-				ImGui::DragFloat3("Look", Global::view_lookat, 0.1f, -10.0f, 10.0f, "%.2f");
-				ImGui::DragFloat3("VUp", Global::view_up, 0.01f, -1.0f, 1.0f, "%.2f");
+			if (ImGui::TreeNode("Camera")) {
+				ImGui::DragFloat3("VPos", albedo::CameraManager::camera_position, 0.1f, -30.0f, 30.0f, "%.2f");
+				ImGui::DragFloat3("Look", albedo::CameraManager::camera_lookat, 0.1f, -10.0f, 10.0f, "%.2f");
+				ImGui::DragFloat3("VUp", albedo::CameraManager::camera_up, 0.01f, -1.0f, 1.0f, "%.2f");
 				ImGui::TreePop();
 			}
 
 			if (ImGui::TreeNode("Projection")) {
-				ImGui::DragFloat("FOV", &Global::projection_FOV, 1.f, 0.0f, 360.0f, "%.2f");
-				ImGui::DragFloat("Near", &Global::projection_near, 0.1f, 0.0f, 100.0f, "%.2f");
-				ImGui::DragFloat("Far", &Global::projection_far, 1.f, 0.0f, 2000.0f, "%.2f");
+				ImGui::DragFloat("FOV", &albedo::CameraManager::projection_FOV, 1.f, 0.0f, 360.0f, "%.2f");
+				ImGui::DragFloat("Near", &albedo::CameraManager::projection_near, 0.1f, 0.0f, 100.0f, "%.2f");
+				ImGui::DragFloat("Far", &albedo::CameraManager::projection_far, 1.f, 0.0f, 2000.0f, "%.2f");
 				ImGui::TreePop();
 			}
 
 			if (ImGui::TreeNode("Light")) {
-				ImGui::DragFloat3("LPos", Global::light_position, 0.1f, -30.0f, 30.0f, "%.2f");
-				ImGui::ColorEdit4("LAmb", Global::light_ambient);
-				ImGui::SliderFloat("LInt", &Global::light_intensity, 0.f, 5.f, "%.2f");
-				ImGui::Checkbox("Shadow Mapping", &Global::is_enabled_shadow_mapping);
-				ImGui::SliderFloat("Shadow Bias", &Global::shadow_mapping_bias, 0.f, 0.0002f, "%.6f");
+				ImGui::DragFloat3("LPos", System::light_position, 0.1f, -30.0f, 30.0f, "%.2f");
+				ImGui::ColorEdit4("LAmb", System::light_ambient);
+				ImGui::SliderFloat("LInt", &System::light_intensity, 0.f, 5.f, "%.2f");
+				ImGui::Checkbox("Shadow Mapping", &System::is_enabled_shadow_mapping);
+				ImGui::SliderFloat("Shadow Bias", &System::shadow_mapping_bias, 0.f, 0.0002f, "%.6f");
 				ImGui::TreePop();
 			}
 
 			if (ImGui::TreeNode("Anti Aliasing")) {
-				if (ImGui::Checkbox("MSAA(Forward)", &Global::is_enabled_msaa)) {
+				if (ImGui::Checkbox("MSAA(Forward)", &System::is_enabled_msaa)) {
 					for (std::shared_ptr<albedo::Entity> object : albedo::World::get_entities()) {
 						object->reset_directx_render_pipeline_state();
 					}
@@ -128,12 +124,12 @@ namespace albedo {
 			}
 
 			if (ImGui::TreeNode("Postprocess")) {
-				ImGui::Checkbox("Postprocessing", &albedo::Global::is_enabled_postprocess);
+				ImGui::Checkbox("Postprocessing", &albedo::System::is_enabled_postprocess);
 				ImGui::TreePop();
 			}
 
 			if (ImGui::TreeNode("Skydome")) {
-				ImGui::Checkbox("Display Skydome", &albedo::Global::is_enabled_skydome);
+				ImGui::Checkbox("Display Skydome", &albedo::System::is_enabled_skydome);
 				ImGui::TreePop();
 			}
 
