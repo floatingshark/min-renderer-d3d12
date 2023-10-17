@@ -10,7 +10,7 @@
 namespace albedo {
 	class Constant {
 	public:
-		typedef struct Scene {
+		typedef struct World {
 			glm::mat4x4 view_matrix;
 			glm::mat4x4 projection_matrix;
 			glm::vec4	view_position;
@@ -21,7 +21,7 @@ namespace albedo {
 			float		light_intensity;
 			int			is_enabled_shadow_mapping;
 			float		shadow_mapping_bias;
-		} Scene;
+		} World;
 
 		typedef struct Local {
 			glm::mat4x4 world;
@@ -31,7 +31,7 @@ namespace albedo {
 		Constant() { init(); }
 
 	protected:
-		Scene scene;
+		World scene;
 		Local local;
 
 	public:
@@ -77,7 +77,7 @@ namespace albedo {
 			scene.shadow_mapping_bias		= Global::shadow_mapping_bias;
 		}
 
-		inline Constant::Scene& get_scene() { return scene; }
+		inline Constant::World& get_scene() { return scene; }
 		inline Constant::Local& get_local() { return local; }
 	};
 } // namespace albedo

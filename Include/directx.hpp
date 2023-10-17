@@ -4,7 +4,7 @@
 
 #include "constant.hpp"
 #include "global.hpp"
-#include "object.hpp"
+#include "entity.hpp"
 #include "shape.hpp"
 #include <External/imgui/imgui.h>
 #include <External/imgui/imgui_impl_dx12.h>
@@ -17,17 +17,18 @@
 #include <dxgi1_4.h>
 #include <iostream>
 #include <vector>
+#include <window.hpp>
 #include <wrl/client.h>
 
 namespace albedo {
 	class DirectXA {
 	public:
-		DirectXA(HWND h) : hwnd(h) { init_directx(); }
+		DirectXA() { construct_directx(); }
 		~DirectXA() {}
 
-		UINT			  WIDTH						 = Global::window_width;
-		UINT			  HEIGHT					 = Global::window_height;
-		static const UINT NUM_FRAMES_IN_FLIGHT		 = 2;
+		UINT WIDTH	= Global::window_width;
+		UINT HEIGHT = Global::window_height;
+
 		static const bool USE_WARP_DEVICE			 = false;
 		static const UINT MAX_OBJECT_SIZE			 = 5;
 		static const UINT MAX_CRV_SRV_BUFFER_SIZE	 = 5;
@@ -36,8 +37,14 @@ namespace albedo {
 		const wchar_t*	  SHADER_NAME_POSTPROCESS	 = L"./Source/Shader/PostprocessShaders.hlsl";
 		const wchar_t*	  SHADER_NAME_SKYDOME		 = L"./Source/Shader/SkydomeShaders.hlsl";
 
+		static const UINT									NUM_FRAMES_IN_FLIGHT = 2;
+		static Microsoft::WRL::ComPtr<ID3D12Device>			device;
+		static Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_rtv;
+		static Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_cbv_srv;
+		static Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_dsv;
+		static Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_imgui;
+
 	private:
-		HWND		   hwnd;
 		UINT64		   frame_number = 1;
 		UINT		   rtv_index	= 0;
 		D3D12_VIEWPORT viewport;
@@ -45,19 +52,14 @@ namespace albedo {
 		D3D12_RECT	   rect_scissor;
 		D3D12_RECT	   rect_scissor_shadow;
 
-		std::vector<albedo::Object*>	render_objects;
-		std::shared_ptr<albedo::Object> skydome_object;
+		std::vector<albedo::Entity*>	entities;
+		std::shared_ptr<albedo::Entity> skydome_entity;
 
 		Microsoft::WRL::ComPtr<IDXGIFactory4>			  factory;
-		Microsoft::WRL::ComPtr<ID3D12Device>			  device;
 		Microsoft::WRL::ComPtr<ID3D12CommandQueue>		  command_queue;
 		Microsoft::WRL::ComPtr<ID3D12Fence>				  queue_fence;
 		HANDLE											  handle_fence_event;
 		IDXGISwapChain3*								  swap_chain;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	  descriptor_heap_rtv;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	  descriptor_heap_cbv_srv;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	  descriptor_heap_dsv;
-		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap>	  descriptor_heap_imgui;
 		Microsoft::WRL::ComPtr<ID3D12Resource>			  resource_render[NUM_FRAMES_IN_FLIGHT];
 		Microsoft::WRL::ComPtr<ID3D12Resource>			  resource_depth;
 		D3D12_CPU_DESCRIPTOR_HANDLE						  handle_rtv[NUM_FRAMES_IN_FLIGHT];
@@ -96,7 +98,7 @@ namespace albedo {
 
 	private:
 		// Initialize DirectX12 Functions
-		void init_directx() {
+		void construct_directx() {
 			init_viewport();
 			DIRECTX_LOG("Initialized Viewport");
 			init_device();
@@ -249,7 +251,7 @@ namespace albedo {
 			swapchain_desc.BufferDesc.Height = HEIGHT;
 			swapchain_desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 			swapchain_desc.SwapEffect		 = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-			swapchain_desc.OutputWindow		 = hwnd;
+			swapchain_desc.OutputWindow		 = albedo::Window::hwnd;
 			swapchain_desc.SampleDesc.Count	 = 1;
 			swapchain_desc.Windowed			 = TRUE;
 
@@ -1009,19 +1011,14 @@ namespace albedo {
 			rtv_index = swap_chain->GetCurrentBackBufferIndex();
 		}
 
-		void set_render_objects(std::vector<std::shared_ptr<albedo::Object>> in_objects) {
-			render_objects.clear();
-			for (std::shared_ptr<albedo::Object> obj : in_objects) {
-				render_objects.push_back(obj.get());
+		void set_render_objects(std::vector<std::shared_ptr<albedo::Entity>> in_objects) {
+			entities.clear();
+			for (std::shared_ptr<albedo::Entity> obj : in_objects) {
+				entities.push_back(obj.get());
 				obj->set_shadow_buffer(resource_shadow.Get());
 			}
 		}
-		void set_render_skydome(std::shared_ptr<albedo::Object> in_object) { skydome_object = in_object; }
-
-		inline UINT64				 get_num_frames() { return NUM_FRAMES_IN_FLIGHT; }
-		inline ID3D12Device*		 get_device() { return device.Get(); }
-		inline ID3D12DescriptorHeap* get_cbv_srv_heap() { return descriptor_heap_cbv_srv.Get(); }
-		inline ID3D12DescriptorHeap* get_imgui_heap() { return descriptor_heap_imgui.Get(); }
+		void set_render_skydome(std::shared_ptr<albedo::Entity> in_object) { skydome_entity = in_object; }
 
 	private:
 		void populate_command_list_shadow() {
@@ -1045,7 +1042,7 @@ namespace albedo {
 
 			command_list->SetGraphicsRootSignature(root_signature.Get());
 			command_list->SetPipelineState(pipeline_state_shadow.Get());
-			for (albedo::Object* object : render_objects) {
+			for (albedo::Entity* object : entities) {
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
 				object->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
@@ -1093,7 +1090,7 @@ namespace albedo {
 			const UINT cbv_descriptor_size =
 				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-			for (albedo::Object* object : render_objects) {
+			for (albedo::Entity* object : entities) {
 				command_list->SetGraphicsRootSignature(object->get_directx_root_signature());
 				command_list->SetPipelineState(object->get_directx_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
@@ -1102,10 +1099,10 @@ namespace albedo {
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
 
-			if (skydome_object && Global::is_enabled_skydome) {
-				command_list->SetPipelineState(skydome_object->get_directx_pipeline_state());
+			if (skydome_entity && Global::is_enabled_skydome) {
+				command_list->SetPipelineState(skydome_entity->get_directx_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				skydome_object->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
+				skydome_entity->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
@@ -1142,7 +1139,7 @@ namespace albedo {
 			const UINT cbv_descriptor_size =
 				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-			for (albedo::Object* object : render_objects) {
+			for (albedo::Entity* object : entities) {
 				command_list->SetGraphicsRootSignature(object->get_directx_root_signature());
 				command_list->SetPipelineState(object->get_directx_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
@@ -1151,11 +1148,11 @@ namespace albedo {
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
 
-			if (skydome_object && Global::is_enabled_skydome) {
+			if (skydome_entity && Global::is_enabled_skydome) {
 				command_list->SetGraphicsRootSignature(root_signature.Get());
-				command_list->SetPipelineState(skydome_object->get_directx_pipeline_state());
+				command_list->SetPipelineState(skydome_entity->get_directx_pipeline_state());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				skydome_object->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
+				skydome_entity->update_directx_resource_views_and_draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
@@ -1314,4 +1311,10 @@ namespace albedo {
 			command_list->SetGraphicsRootDescriptorTable(0, cbv_gpu_handle);
 		}
 	};
+
+	Microsoft::WRL::ComPtr<ID3D12Device>		 DirectXA::device				   = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXA::descriptor_heap_rtv	   = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXA::descriptor_heap_cbv_srv = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXA::descriptor_heap_dsv	   = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> DirectXA::descriptor_heap_imgui   = nullptr;
 } // namespace albedo

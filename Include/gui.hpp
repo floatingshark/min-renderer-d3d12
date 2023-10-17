@@ -1,6 +1,6 @@
 #include "constant.hpp"
+#include "entity.hpp"
 #include "global.hpp"
-#include "object.hpp"
 #include "texture.hpp"
 #include <External/GLFW/glfw3.h>
 #include <External/imgui/imgui.h>
@@ -9,22 +9,27 @@
 #include <External/imgui/imgui_internal.h>
 #include <cassert>
 #include <d3d12.h>
+#include <directx.hpp>
 #include <iostream>
 #include <string>
 #include <vector>
+#include <window.hpp>
+#include <world.hpp>
 
 namespace albedo {
-	class UI {
-	protected:
-		std::vector<std::shared_ptr<albedo::Object>> render_objects;
-		std::shared_ptr<albedo::Object>				 skydome_object;
-		int											 selected_id = 0;
-
+	class GUI {
 	public:
-		void init(GLFWwindow* window, ID3D12Device* device, UINT num_frames, ID3D12DescriptorHeap* heap_srv) {
+		GUI() { construct(); }
+
+		void construct() {
+			GLFWwindow*			  window	 = albedo::Window::window_ptr;
+			ID3D12Device*		  device	 = albedo::DirectXA::device.Get();
+			UINT				  num_frames = albedo::DirectXA::NUM_FRAMES_IN_FLIGHT;
+			ID3D12DescriptorHeap* heap_imgui = albedo::DirectXA::descriptor_heap_imgui.Get();
+
 			init_imgui();
 			init_imgui_glfw(window);
-			init_imgui_directX(device, num_frames, heap_srv);
+			init_imgui_directX(device, num_frames, heap_imgui);
 		}
 		void update() {
 			ImGui_ImplDX12_NewFrame();
@@ -43,12 +48,9 @@ namespace albedo {
 			ImGui::DestroyContext();
 		}
 
-		void set_render_objects(std::vector<std::shared_ptr<albedo::Object>> in_objects) {
-			render_objects = in_objects;
-		}
-		void set_skydome_object(std::shared_ptr<albedo::Object> in_object) { skydome_object = in_object; }
-
 	protected:
+		int selected_id = 0;
+
 		void init_imgui() {
 			IMGUI_CHECKVERSION();
 			ImGui::CreateContext();
@@ -117,10 +119,10 @@ namespace albedo {
 
 			if (ImGui::TreeNode("Anti Aliasing")) {
 				if (ImGui::Checkbox("MSAA(Forward)", &Global::is_enabled_msaa)) {
-					for (std::shared_ptr<albedo::Object> object : render_objects) {
+					for (std::shared_ptr<albedo::Entity> object : albedo::World::get_entities()) {
 						object->reset_directx_render_pipeline_state();
 					}
-					skydome_object->reset_directx_render_pipeline_state();
+					albedo::World::get_skydome_entity()->reset_directx_render_pipeline_state();
 				}
 				ImGui::TreePop();
 			}
@@ -138,7 +140,7 @@ namespace albedo {
 			ImGui::End();
 		}
 		void create_panel_2() {
-			ImGui::Begin("Object");
+			ImGui::Begin("Entity");
 
 			ImGuiTableFlags object_table_flags = ImGuiTableFlags_Resizable;
 			object_table_flags |= ImGuiTableFlags_Reorderable;
@@ -151,14 +153,15 @@ namespace albedo {
 			object_table_flags |= ImGuiTableFlags_ScrollX;
 			object_table_flags |= ImGuiTableFlags_ScrollY;
 			object_table_flags |= ImGuiTableFlags_SizingFixedFit;
-			if (ImGui::BeginTable("Object Table", 2, object_table_flags, ImVec2(0.0f, 10.f * 7.f), 0.0f)) {
+			if (ImGui::BeginTable("Entity Table", 2, object_table_flags, ImVec2(0.0f, 10.f * 7.f), 0.0f)) {
 				ImGui::TableSetupColumn("ID", ImGuiTableColumnFlags_WidthFixed);
 				ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthStretch);
 				ImGui::TableSetupScrollFreeze(0, 1);
 				ImGui::TableHeadersRow();
-				for (int i = 0; i < static_cast<int>(render_objects.size()); i++) {
+				std::vector<std::shared_ptr<albedo::Entity>> entities = albedo::World::get_entities();
+				for (int i = 0; i < static_cast<int>(entities.size()); i++) {
 					char			id_label[32];
-					albedo::Object* object = render_objects[i].get();
+					albedo::Entity* object = entities[i].get();
 					ImGui::TableNextRow();
 					ImGui::TableNextColumn();
 					sprintf(id_label, "%d", i);
@@ -175,10 +178,10 @@ namespace albedo {
 
 			ImGui::End();
 		}
-		void create_panel_3(){
+		void create_panel_3() {
 			ImGui::Begin("Detail");
 
-			albedo::Object* object = render_objects[selected_id].get();
+			albedo::Entity* object = albedo::World::get_entities()[selected_id].get();
 
 			ImGui::SeparatorText("Transform");
 			ImGui::DragFloat3("Pos", (float*)&object->position, 0.1f, -10.0f, 10.0f, "%.2f");

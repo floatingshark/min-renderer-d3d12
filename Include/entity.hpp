@@ -14,9 +14,9 @@
 #include <wrl/client.h>
 
 namespace albedo {
-	class Object {
+	class Entity {
 	public:
-		Object(ID3D12Device* device, ID3D12DescriptorHeap* heap_cbv) : device(device), descriptor_heap_cbv(heap_cbv) {
+		Entity(ID3D12Device* device, ID3D12DescriptorHeap* heap_cbv) : device(device), descriptor_heap_cbv(heap_cbv) {
 			init_object_datum();
 			init_directx_contexts();
 		};
@@ -73,11 +73,11 @@ namespace albedo {
 		};
 
 		// Update Constant and Shader Resource
-		void update_directx_constant_resources(Constant::Scene scene, Constant::Local local) {
+		void update_directx_constant_resources(Constant::World scene, Constant::Local local) {
 			update_directx_constant_resource_1(scene);
 			update_directx_constant_resource_2(local);
 		}
-		// Update Resource Views and Draw Object
+		// Update Resource Views and Draw Entity
 		void update_directx_resource_views_and_draw(ID3D12GraphicsCommandList*	command_list,
 													D3D12_CPU_DESCRIPTOR_HANDLE in_handle) {
 			UINT					 size_vertices = sizeof(Shape::Vertex) * vertex_data.size();
@@ -97,7 +97,7 @@ namespace albedo {
 			index_view.Format		  = DXGI_FORMAT_R32_UINT;
 			index_view.SizeInBytes	  = size_indices;
 
-			// Consntant Buffer View Scene (Index 1)
+			// Consntant Buffer View World (Index 1)
 			D3D12_CONSTANT_BUFFER_VIEW_DESC cbuff_desc = {};
 			cbuff_desc.BufferLocation				   = constant_resource[0]->GetGPUVirtualAddress();
 			cbuff_desc.SizeInBytes					   = CBUFFER_SIZE;
@@ -483,15 +483,15 @@ namespace albedo {
 			hr = device->CreateGraphicsPipelineState(&pipeline_state_desc, IID_PPV_ARGS(&pipeline_state));
 			assert(SUCCEEDED(hr) && "Create Graphics Pipeline State");
 		}
-		// Constant Buffer 1 Supports Scene Mutual Variables
-		void update_directx_constant_resource_1(Constant::Scene scene) {
+		// Constant Buffer 1 Supports World Mutual Variables
+		void update_directx_constant_resource_1(Constant::World scene) {
 			HRESULT hr;
 			void*	Mapped;
 
 			// calculate_scene(scene);
 
 			hr = constant_resource[0]->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Scene]");
+			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[World]");
 			CopyMemory(Mapped, &scene, sizeof(scene));
 			constant_resource[0]->Unmap(0, nullptr);
 			Mapped = nullptr;
@@ -504,12 +504,12 @@ namespace albedo {
 			calculate_local_variables(local);
 
 			hr = constant_resource[1]->Map(0, nullptr, &Mapped);
-			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Object]");
+			assert(SUCCEEDED(hr) && "Constant Buffer Mappded[Entity]");
 			CopyMemory(Mapped, &local, sizeof(local));
 			constant_resource[1]->Unmap(0, nullptr);
 			Mapped = nullptr;
 		}
-		// void calculate_scene(Constant::Scene& scene) {}
+		// void calculate_scene(Constant::World& scene) {}
 		void calculate_local_variables(Constant::Local& local) {
 			local.world			 = glm::translate(local.world, position);
 			local.world			 = glm::rotate(local.world, rotation[0], {1.f, 0.f, 0.f});

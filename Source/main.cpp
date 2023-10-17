@@ -5,10 +5,10 @@
 
 #include "constant.hpp"
 #include "directx.hpp"
-#include "object.hpp"
-#include "scene.hpp"
+#include "entity.hpp"
+#include "world.hpp"
 #include "shape.hpp"
-#include "ui.hpp"
+#include "gui.hpp"
 #include "window.hpp"
 #include <External/imgui/imgui.h>
 #include <External/imgui/imgui_impl_dx12.h>
@@ -24,43 +24,38 @@ int main() {
 	std::unique_ptr<albedo::Window> window = std::make_unique<albedo::Window>();
 	MAIN_LOG("Prepared Window");
 
-	std::unique_ptr<albedo::DirectXA> directx = std::make_unique<albedo::DirectXA>(window->get_hwnd());
+	std::unique_ptr<albedo::DirectXA> directx = std::make_unique<albedo::DirectXA>();
 	MAIN_LOG("Prepared DirectX12");
 
 	std::unique_ptr<albedo::Constant> constant = std::make_unique<albedo::Constant>();
 	MAIN_LOG("Prepared Constant Datum");
 
-	std::unique_ptr<albedo::Scene> scene =
-		std::make_unique<albedo::Scene>(directx->get_device(), directx->get_cbv_srv_heap());
-	MAIN_LOG("Prepared Scene Datum");
+	std::unique_ptr<albedo::World> world = std::make_unique<albedo::World>();
+	MAIN_LOG("Prepared World Datum");
 
-	std::unique_ptr<albedo::UI> ui = std::make_unique<albedo::UI>();
-	MAIN_LOG("Prepared UI");
+	std::unique_ptr<albedo::GUI> gui = std::make_unique<albedo::GUI>();
+	MAIN_LOG("Prepared GUI");
 
-	ui->init(window->get_window(), directx->get_device(), directx->get_num_frames(), directx->get_imgui_heap());
-	MAIN_LOG("Initialized ImGui for DirectX");
 
-	directx->set_render_objects(scene->render_objects);
-	directx->set_render_skydome(scene->skydome_object);
-	ui->set_render_objects(scene->render_objects);
-	ui->set_skydome_object(scene->skydome_object);
-	MAIN_LOG("Initialized Object to Renderer");
+	directx->set_render_objects(world->get_entities());
+	directx->set_render_skydome(world->get_skydome_entity());
+	MAIN_LOG("Initialized Entity to Renderer");
 
-	while (window->is_update()) {
-		ui->update();
+	while (window->should_update()) {
+		gui->update();
 		window->update();
 		constant->update();
 
-		for (std::shared_ptr<albedo::Object> object : scene->render_objects) {
+		for (std::shared_ptr<albedo::Entity> object : world->get_entities()) {
 			object->update_directx_constant_resources(constant->get_scene(), constant->get_local());
 		}
-		scene->skydome_object->update_directx_constant_resources(constant->get_scene(), constant->get_local());
+		world->get_skydome_entity()->update_directx_constant_resources(constant->get_scene(), constant->get_local());
 
-		ui->render();
+		gui->render();
 		directx->render();
 	}
 
-	ui->shutdown();
+	gui->shutdown();
 	window->shutdown();
 
 	MAIN_LOG("============================= End Program =============================");

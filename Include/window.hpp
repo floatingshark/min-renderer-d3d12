@@ -10,24 +10,27 @@
 namespace albedo {
 	class Window {
 	public:
-		Window() { init_window(); }
+		Window() { construct_window(); }
+
+		static GLFWwindow* window_ptr;
+		static HWND		   hwnd;
 
 	protected:
-		const std::string NAME		 = "albedo 0.1.0";
-		GLFWwindow*		  window_ptr = nullptr;
+		const std::string NAME = "albedo 0.1";
 
 	public:
-		void init_window() {
+		void construct_window() {
 			glfwSetErrorCallback(glfw_error_callback);
 			glfwInit();
 			glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 			glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 			window_ptr = glfwCreateWindow(Global::window_width, Global::window_height, NAME.c_str(), nullptr, nullptr);
+			hwnd	   = glfwGetWin32Window(this->window_ptr);
 		}
 
 		void update() {
-			if (is_update()) {
+			if (should_update()) {
 				glfwPollEvents();
 				update_control();
 			}
@@ -69,12 +72,12 @@ namespace albedo {
 			glfwTerminate();
 		}
 
-		inline GLFWwindow* get_window() { return window_ptr; }
-		inline HWND		   get_hwnd() { return glfwGetWin32Window(this->window_ptr); }
-		inline bool		   is_update() { return !glfwWindowShouldClose(window_ptr); }
-
+		inline bool should_update() { return !glfwWindowShouldClose(window_ptr); }
 		static void glfw_error_callback(int error, const char* description) {
 			fprintf(stderr, "GLFW Error %d: %s\n", error, description);
 		}
 	};
+	GLFWwindow* albedo::Window::window_ptr = nullptr;
+	HWND		albedo::Window::hwnd	   = nullptr;
+
 } // namespace albedo
