@@ -1,9 +1,11 @@
 #include "camera_manager.hpp"
-#include "constant.hpp"
+#include "directx_constant.hpp"
 #include "directx_manager.hpp"
 #include "entity.hpp"
+#include "entity_shaders.hpp"
+#include "entity_shapes.hpp"
+#include "entity_texture.hpp"
 #include "system_variables.hpp"
-#include "texture.hpp"
 #include "window_manager.hpp"
 #include "world.hpp"
 #include <External/GLFW/glfw3.h>
@@ -116,9 +118,9 @@ namespace albedo {
 			if (ImGui::TreeNode("Anti Aliasing")) {
 				if (ImGui::Checkbox("MSAA(Forward)", &System::is_enabled_msaa)) {
 					for (std::shared_ptr<albedo::Entity> object : albedo::World::get_entities()) {
-						object->reset_directx_render_pipeline_state();
+						object->change_render_pipeline();
 					}
-					albedo::World::get_skydome_entity()->reset_directx_render_pipeline_state();
+					albedo::World::get_skydome_entity()->change_render_pipeline();
 				}
 				ImGui::TreePop();
 			}
@@ -189,7 +191,7 @@ namespace albedo {
 			int			shader_item_current = (int)object->shader_type;
 			if (ImGui::Combo("Shaders", &shader_item_current, shader_items, IM_ARRAYSIZE(shader_items))) {
 				const albedo::Shaders::Type shader_type = (albedo::Shaders::Type)shader_item_current;
-				object->reset_directx_shader(shader_type);
+				object->change_shader(shader_type);
 			}
 
 			ImGui::SeparatorText("Material");
@@ -197,11 +199,11 @@ namespace albedo {
 			int			tex_item_current = (int)object->texture_type;
 			if (ImGui::Combo("Tex", &tex_item_current, tex_items, IM_ARRAYSIZE(tex_items))) {
 				const Texture::Type texture_type = (Texture::Type)tex_item_current;
-				object->set_texture_data(texture_type);
+				object->set_texture_type(texture_type);
 			}
 			if (ImGui::ColorEdit3("TCol", object->texture_color)) {
 				const Texture::Type texture_type = (Texture::Type)tex_item_current;
-				object->set_texture_data(texture_type);
+				object->set_texture_type(texture_type);
 			}
 
 			ImGui::SliderFloat("Spec", &object->specular_power, 0.1f, 1000.f, "%.2f");
