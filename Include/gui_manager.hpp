@@ -1,5 +1,6 @@
 #include "DirectX/directx_constant.hpp"
 #include "DirectX/directx_manager.hpp"
+#include "DirectX/directx_imgui_render.hpp"
 #include "camera_manager.hpp"
 #include "entity.hpp"
 #include "system_variables.hpp"
@@ -23,8 +24,8 @@ namespace albedo {
 		void construct() {
 			init_imgui();
 			init_imgui_glfw(albedo::WindowManager::window_ptr);
-			init_imgui_directX(albedo::DirectXManager::device.Get(), albedo::DirectXManager::NUM_FRAMES_IN_FLIGHT,
-							   albedo::DirectXManager::descriptor_heap_imgui.Get());
+			init_imgui_directX(albedo::DirectXManager::device.Get(), System::num_frames_in_fright,
+							   albedo::DirectXImGuiRender::descriptor_heap_imgui.Get());
 		}
 		void update() {
 			ImGui_ImplDX12_NewFrame();

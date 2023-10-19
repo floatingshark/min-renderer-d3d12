@@ -34,7 +34,7 @@ int main() {
 
 	for (std::shared_ptr<albedo::Entity> entity : world->get_all_entities()) {
 		entity->init_directx_contexts(directx_manager->device.Get(), directx_manager->descriptor_heap_cbv_srv.Get());
-		entity->init_directx_shadow_buffer(directx_manager->resource_shadow.Get());
+		entity->init_directx_shadow_buffer(directx_manager->shadow_render->resource_shadow.Get());
 	}
 
 	std::unique_ptr<albedo::GUIManager> gui_manager = std::make_unique<albedo::GUIManager>();

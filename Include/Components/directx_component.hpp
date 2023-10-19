@@ -1,5 +1,5 @@
 #pragma once
-#include "directx_constant.hpp"
+#include "DirectX/directx_constant.hpp"
 #include "shader_component.hpp"
 #include "shape_component.hpp"
 #include "map_component.hpp"
