@@ -1,10 +1,7 @@
+#include "DirectX/directx_constant.hpp"
+#include "DirectX/directx_manager.hpp"
 #include "camera_manager.hpp"
-#include "directx_constant.hpp"
-#include "directx_manager.hpp"
 #include "entity.hpp"
-#include "entity_shaders.hpp"
-#include "entity_shapes.hpp"
-#include "entity_texture.hpp"
 #include "system_variables.hpp"
 #include "window_manager.hpp"
 #include "world.hpp"
@@ -179,34 +176,36 @@ namespace albedo {
 		void create_panel_3() {
 			ImGui::Begin("Detail");
 
-			albedo::Entity* object = albedo::World::get_entities()[selected_id].get();
+			albedo::Entity* entity = albedo::World::get_entities()[selected_id].get();
 
 			ImGui::SeparatorText("Transform");
-			ImGui::DragFloat3("Pos", (float*)&object->position, 0.1f, -10.0f, 10.0f, "%.2f");
-			ImGui::DragFloat3("Rot", (float*)&object->rotation, 0.1f, -10.0f, 10.0f, "%.2f");
-			ImGui::DragFloat3("Scl", (float*)&object->scale, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("Pos", (float*)&entity->position, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("Rot", (float*)&entity->rotation, 0.1f, -10.0f, 10.0f, "%.2f");
+			ImGui::DragFloat3("Scl", (float*)&entity->scale, 0.1f, -10.0f, 10.0f, "%.2f");
 
 			ImGui::SeparatorText("Shader");
 			const char* shader_items[]		= {"Color", "Phong", "Skydome"};
-			int			shader_item_current = (int)object->shader_type;
+			int			shader_item_current = (int)entity->shader_component->type;
 			if (ImGui::Combo("Shaders", &shader_item_current, shader_items, IM_ARRAYSIZE(shader_items))) {
-				const albedo::Shaders::Type shader_type = (albedo::Shaders::Type)shader_item_current;
-				object->change_shader(shader_type);
+				const albedo::ShaderComponent::ShaderType shader_type =
+					(albedo::ShaderComponent::ShaderType)shader_item_current;
+				entity->change_shader(shader_type);
 			}
 
 			ImGui::SeparatorText("Material");
 			const char* tex_items[]		 = {"Mono", "Checker Board", "Image"};
-			int			tex_item_current = (int)object->texture_type;
+			int			tex_item_current = (int)entity->map_component->texture_type;
 			if (ImGui::Combo("Tex", &tex_item_current, tex_items, IM_ARRAYSIZE(tex_items))) {
-				const Texture::Type texture_type = (Texture::Type)tex_item_current;
-				object->set_texture_type(texture_type);
+				const MapComponent::TextureType texture_type = (MapComponent::TextureType)tex_item_current;
+				entity->set_texture_type(texture_type);
 			}
-			if (ImGui::ColorEdit3("TCol", object->texture_color)) {
-				const Texture::Type texture_type = (Texture::Type)tex_item_current;
+			/*
+			if (ImGui::ColorEdit3("TCol", object->map_component->map_color)) {
+				const MapComponent::TextureType texture_type = (MapComponent::TextureType)tex_item_current;
 				object->set_texture_type(texture_type);
-			}
+			}*/
 
-			ImGui::SliderFloat("Spec", &object->specular_power, 0.1f, 1000.f, "%.2f");
+			ImGui::SliderFloat("Spec", &entity->specular_power, 0.1f, 1000.f, "%.2f");
 
 			ImGui::End();
 		}

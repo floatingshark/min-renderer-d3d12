@@ -6,9 +6,19 @@
 #include <vector>
 
 namespace albedo {
-	class Texture {
+	class MapComponent {
 	public:
-		enum struct Type { Monochrome, CheckerBoard, Image, Max };
+		enum struct TextureType { Monochrome, CheckerBoard, Image, Max };
+
+		MapComponent() { texture_data = create_monochromatic(map_size, map_color); }
+
+		float						   map_size		= 1024;
+		byte						   map_color[4] = {255, 255, 255, 255};
+		std::vector<byte>			   texture_data;
+		TextureType					   texture_type		 = TextureType::Monochrome;
+		std::string					   texture_file_name = "";
+		std::vector<std::vector<byte>> cube_map_data;
+		std::string					   cube_map_file_name = "";
 
 		static std::vector<byte> create_monochromatic(int tex_size, byte color[4]) {
 			std::vector<byte> ret;
@@ -41,7 +51,7 @@ namespace albedo {
 			}
 			return ret;
 		}
-		
+
 		static void read_bmp_file(const char* file_name, std::vector<byte>& out_texture) {
 
 			int			  i;

@@ -1,13 +1,12 @@
 #pragma once
 #include "camera_manager.hpp"
 #include "system_variables.hpp"
+#include "window_manager.hpp"
 #include <External/glm/glm.hpp>
 #include <External/glm/gtc/matrix_transform.hpp>
 #include <External/glm/gtx/string_cast.hpp>
-#include <cassert>
 #include <iostream>
 #include <vector>
-#include <window_manager.hpp>
 
 namespace albedo {
 	class DirectXConstant {

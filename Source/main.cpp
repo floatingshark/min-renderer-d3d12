@@ -4,8 +4,7 @@
 // #undef _DEBUG
 
 #include "camera_manager.hpp"
-#include "directx_constant.hpp"
-#include "directx_manager.hpp"
+#include "DirectX/directx_manager.hpp"
 #include "entity.hpp"
 #include "gui_manager.hpp"
 #include "window_manager.hpp"
@@ -33,13 +32,10 @@ int main() {
 	std::unique_ptr<albedo::DirectXManager> directx_manager = std::make_unique<albedo::DirectXManager>();
 	MAIN_LOG("DirectX12 Manager");
 
-	for (std::shared_ptr<albedo::Entity> entity : world->get_entities()) {
+	for (std::shared_ptr<albedo::Entity> entity : world->get_all_entities()) {
 		entity->init_directx_contexts(directx_manager->device.Get(), directx_manager->descriptor_heap_cbv_srv.Get());
+		entity->init_directx_shadow_buffer(directx_manager->resource_shadow.Get());
 	}
-	world->get_skydome_entity()->init_directx_contexts(directx_manager->device.Get(),
-													   directx_manager->descriptor_heap_cbv_srv.Get());
-	directx_manager->set_render_objects(world->get_entities());
-	directx_manager->set_render_skydome(world->get_skydome_entity());
 
 	std::unique_ptr<albedo::GUIManager> gui_manager = std::make_unique<albedo::GUIManager>();
 	MAIN_LOG("GUI Manager");
@@ -50,11 +46,7 @@ int main() {
 		gui_manager->update();
 		window_manager->update();
 		camera_manager->update();
-
-		for (std::shared_ptr<albedo::Entity> entity : world->get_entities()) {
-			entity->update();
-		}
-		world->get_skydome_entity()->update();
+		world->update();
 
 		gui_manager->render();
 		directx_manager->render();

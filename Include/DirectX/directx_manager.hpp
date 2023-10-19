@@ -2,7 +2,7 @@
 #define DIRECTX_LOG(log_msg) std::cout << "[DirectX12]" << log_msg << std::endl;
 #define DIRECTX_ASSERT(hr, log_msg) assert(SUCCEEDED(hr) && log_msg);
 
-#include "directx_constant.hpp"
+#include "DirectX/directx_constant.hpp"
 #include "entity.hpp"
 #include "system_variables.hpp"
 #include "window_manager.hpp"
@@ -47,22 +47,17 @@ namespace albedo {
 		Microsoft::WRL::ComPtr<ID3D12Resource> resource_shadow;
 
 	private:
-		UINT64		   frame_number = 1;
-		UINT		   rtv_index	= 0;
-		D3D12_VIEWPORT viewport;
-		D3D12_VIEWPORT viewport_shadow;
-		D3D12_RECT	   rect_scissor;
-		D3D12_RECT	   rect_scissor_shadow;
-
-		std::vector<albedo::Entity*>	entities;
-		std::shared_ptr<albedo::Entity> skydome_entity;
-
-		Microsoft::WRL::ComPtr<IDXGIFactory4>	   factory;
-		Microsoft::WRL::ComPtr<ID3D12CommandQueue> command_queue;
-		Microsoft::WRL::ComPtr<ID3D12Fence>		   queue_fence;
-		HANDLE									   handle_fence_event;
-		IDXGISwapChain3*						   swap_chain;
-
+		UINT64											  frame_number = 1;
+		UINT											  rtv_index	   = 0;
+		D3D12_VIEWPORT									  viewport;
+		D3D12_VIEWPORT									  viewport_shadow;
+		D3D12_RECT										  rect_scissor;
+		D3D12_RECT										  rect_scissor_shadow;
+		Microsoft::WRL::ComPtr<IDXGIFactory4>			  factory;
+		Microsoft::WRL::ComPtr<ID3D12CommandQueue>		  command_queue;
+		Microsoft::WRL::ComPtr<ID3D12Fence>				  queue_fence;
+		HANDLE											  handle_fence_event;
+		IDXGISwapChain3*								  swap_chain;
 		D3D12_CPU_DESCRIPTOR_HANDLE						  handle_rtv[NUM_FRAMES_IN_FLIGHT];
 		D3D12_CPU_DESCRIPTOR_HANDLE						  handle_dsv;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	  command_allocator;
@@ -1015,15 +1010,6 @@ namespace albedo {
 			rtv_index = swap_chain->GetCurrentBackBufferIndex();
 		}
 
-		void set_render_objects(std::vector<std::shared_ptr<albedo::Entity>> in_objects) {
-			entities.clear();
-			for (std::shared_ptr<albedo::Entity> obj : in_objects) {
-				entities.push_back(obj.get());
-				obj->set_shadow_buffer(resource_shadow.Get());
-			}
-		}
-		void set_render_skydome(std::shared_ptr<albedo::Entity> in_object) { skydome_entity = in_object; }
-
 	private:
 		void populate_command_list_shadow() {
 			HRESULT hr;
@@ -1048,7 +1034,7 @@ namespace albedo {
 
 			for (std::shared_ptr<albedo::Entity> entity : albedo::World::get_entities()) {
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				entity->entity_directx->draw(command_list.Get(), handle_cbv_srv);
+				entity->directx_component->draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
@@ -1094,19 +1080,19 @@ namespace albedo {
 				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			for (std::shared_ptr<albedo::Entity> entity : albedo::World::get_entities()) {
-				command_list->SetGraphicsRootSignature(entity->entity_directx->root_signature.Get());
-				command_list->SetPipelineState(entity->entity_directx->pipeline_state.Get());
+				command_list->SetGraphicsRootSignature(entity->directx_component->root_signature.Get());
+				command_list->SetPipelineState(entity->directx_component->pipeline_state.Get());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				entity->entity_directx->draw(command_list.Get(), handle_cbv_srv);
+				entity->directx_component->draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
 
 			if (System::is_enabled_skydome) {
-				skydome_entity = albedo::World::get_skydome_entity();
-				command_list->SetPipelineState(skydome_entity->entity_directx->pipeline_state.Get());
+				std::shared_ptr<albedo::Entity> skydome_entity = albedo::World::get_skydome_entity();
+				command_list->SetPipelineState(skydome_entity->directx_component->pipeline_state.Get());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				skydome_entity->entity_directx->draw(command_list.Get(), handle_cbv_srv);
+				skydome_entity->directx_component->draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
@@ -1144,20 +1130,20 @@ namespace albedo {
 				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
 			for (std::shared_ptr<albedo::Entity> entity : albedo::World::get_entities()) {
-				command_list->SetGraphicsRootSignature(entity->entity_directx->root_signature.Get());
-				command_list->SetPipelineState(entity->entity_directx->pipeline_state.Get());
+				command_list->SetGraphicsRootSignature(entity->directx_component->root_signature.Get());
+				command_list->SetPipelineState(entity->directx_component->pipeline_state.Get());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				entity->entity_directx->draw(command_list.Get(), handle_cbv_srv);
+				entity->directx_component->draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}
 
 			if (System::is_enabled_skydome) {
-				skydome_entity = albedo::World::get_skydome_entity();
+				std::shared_ptr<albedo::Entity> skydome_entity = albedo::World::get_skydome_entity();
 				command_list->SetGraphicsRootSignature(root_signature.Get());
-				command_list->SetPipelineState(skydome_entity->entity_directx->pipeline_state.Get());
+				command_list->SetPipelineState(skydome_entity->directx_component->pipeline_state.Get());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				skydome_entity->entity_directx->draw(command_list.Get(), handle_cbv_srv);
+				skydome_entity->directx_component->draw(command_list.Get(), handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}

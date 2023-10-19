@@ -1,8 +1,8 @@
 #pragma once
 #include "directx_constant.hpp"
-#include "entity_shaders.hpp"
-#include "entity_shapes.hpp"
-#include "entity_texture.hpp"
+#include "shader_component.hpp"
+#include "shape_component.hpp"
+#include "map_component.hpp"
 #include "system_variables.hpp"
 #include <cassert>
 #include <d3d12.h>
@@ -12,9 +12,9 @@
 #include <wrl/client.h>
 
 namespace albedo {
-	class EntityDirectX {
+	class DirectXComponent {
 	public:
-		EntityDirectX() {}
+		DirectXComponent() {}
 
 		DirectXConstant constant;
 
@@ -35,7 +35,7 @@ namespace albedo {
 		int vertex_size;
 		int index_size;
 
-		void initialize_resources(std::vector<Shape::Vertex> vertex_data, std::vector<int> index_data,
+		void initialize_resources(std::vector<ShapeComponent::Vertex> vertex_data, std::vector<int> index_data,
 								  std::vector<byte> texture_data) {
 			// Cache Size
 			vertex_size = vertex_data.size();
@@ -53,7 +53,7 @@ namespace albedo {
 			heap_properties.CreationNodeMask	 = 1;
 			heap_properties.VisibleNodeMask		 = 1;
 			resource_desc.Dimension				 = D3D12_RESOURCE_DIMENSION_BUFFER;
-			resource_desc.Width					 = sizeof(Shape::Vertex) * vertex_size;
+			resource_desc.Width					 = sizeof(ShapeComponent::Vertex) * vertex_size;
 			resource_desc.Height				 = 1;
 			resource_desc.DepthOrArraySize		 = 1;
 			resource_desc.MipLevels				 = 1;
@@ -108,7 +108,7 @@ namespace albedo {
 
 			// Init Buffers
 			void*		 Mapped;
-			const UINT	 size_vertices = sizeof(Shape::Vertex) * vertex_size;
+			const UINT	 size_vertices = sizeof(ShapeComponent::Vertex) * vertex_size;
 			const size_t size_indices  = sizeof(int) * index_size;
 
 			hr = vertex_resource->Map(0, nullptr, &Mapped);
@@ -205,14 +205,14 @@ namespace albedo {
 			assert(SUCCEEDED(h_result) && "Create Root Signature");
 		}
 
-		void initialize_pipeline_state(albedo::Shaders::Type shader_type) {
+		void initialize_pipeline_state(albedo::ShaderComponent::ShaderType shader_type) {
 			HRESULT hr;
 
 			UINT							 compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 			Microsoft::WRL::ComPtr<ID3DBlob> vertex_shader;
 			Microsoft::WRL::ComPtr<ID3DBlob> pixel_shader;
 
-			const wchar_t* shader_name = albedo::Shaders::get_shader_name(shader_type);
+			const wchar_t* shader_name = albedo::ShaderComponent::get_shader_name(shader_type);
 			hr = D3DCompileFromFile(shader_name, nullptr, nullptr, "VSMain", "vs_5_0", compile_flags, 0, &vertex_shader,
 									nullptr);
 			hr = D3DCompileFromFile(shader_name, nullptr, nullptr, "PSMain", "ps_5_0", compile_flags, 0, &pixel_shader,
@@ -329,7 +329,7 @@ namespace albedo {
 		}
 
 		void draw(ID3D12GraphicsCommandList* command_list, D3D12_CPU_DESCRIPTOR_HANDLE in_handle) {
-			UINT					 size_vertices = sizeof(Shape::Vertex) * vertex_size;
+			UINT					 size_vertices = sizeof(ShapeComponent::Vertex) * vertex_size;
 			const size_t			 size_indices  = sizeof(int) * index_size;
 			D3D12_VERTEX_BUFFER_VIEW vertex_view{};
 			D3D12_INDEX_BUFFER_VIEW	 index_view{};
@@ -338,7 +338,7 @@ namespace albedo {
 
 			// Vertex View
 			vertex_view.BufferLocation = vertex_resource->GetGPUVirtualAddress();
-			vertex_view.StrideInBytes  = sizeof(Shape::Vertex); // Size of 1 Vertex
+			vertex_view.StrideInBytes  = sizeof(ShapeComponent::Vertex); // Size of 1 Vertex
 			vertex_view.SizeInBytes	   = size_vertices;			// Size of All Vertices
 
 			// Index View

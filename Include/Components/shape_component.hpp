@@ -6,7 +6,7 @@
 #include <vector>
 
 namespace albedo {
-	class Shape {
+	class ShapeComponent {
 	public:
 		typedef struct Vertex {
 			float Position[3];
@@ -16,6 +16,11 @@ namespace albedo {
 		} Vertex;
 
 		enum struct Type { Plane, Cube, Torus, Max };
+
+		ShapeComponent() { create_plane(vertex_data, index_data); }
+
+		std::vector<ShapeComponent::Vertex> vertex_data;
+		std::vector<int>					index_data;
 
 	public:
 		static void create_plane(std::vector<Vertex>& out_vertices, std::vector<int>& out_indices) {

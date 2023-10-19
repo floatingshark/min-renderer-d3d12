@@ -6,18 +6,20 @@
 #include <vector>
 
 namespace albedo {
-	class Shaders {
+	class ShaderComponent {
 	public:
-		enum struct Type { Color, Phong, Skydome, Max };
+		enum struct ShaderType { Color, Phong, Skydome, Max };
+
+		ShaderType type = ShaderType::Color;
 
 	public:
-		static const wchar_t* get_shader_name(albedo::Shaders::Type in_type) {
+		static const wchar_t* get_shader_name(albedo::ShaderComponent::ShaderType in_type) {
 			switch (in_type) {
-			case albedo::Shaders::Type::Color:
+			case albedo::ShaderComponent::ShaderType::Color:
 				return L"./Source/Shader/ColorShaders.hlsl";
-			case albedo::Shaders::Type::Phong:
+			case albedo::ShaderComponent::ShaderType::Phong:
 				return L"./Source/Shader/PhongShaders.hlsl";
-			case albedo::Shaders::Type::Skydome:
+			case albedo::ShaderComponent::ShaderType::Skydome:
 				return L"./Source/Shader/SkydomeShaders.hlsl";
 			default:
 				return L"./Source/Shader/ColorShaders.hlsl";
