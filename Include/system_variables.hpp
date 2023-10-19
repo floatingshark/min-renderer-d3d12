@@ -5,6 +5,7 @@ namespace albedo {
 	class System {
 	public:
 		static float bg_color[4];
+		static int	 texture_size;
 
 		static float light_position[3];
 		static float light_ambient[4];
@@ -12,9 +13,9 @@ namespace albedo {
 
 		static int	num_frames_in_fright;
 		static bool is_warp_device;
-		static int	texture_size;
-		static int	cbuffer_size;
+		static int	max_num_of_entity;
 		static int	cbv_srv_buffer_size;
+		static int	cbuffer_size;
 
 		static bool	 is_enabled_shadow_mapping;
 		static float shadow_mapping_bias;
@@ -23,11 +24,12 @@ namespace albedo {
 		static bool	 is_enabled_skydome;
 	};
 
-	float System::bg_color[4] = {0.725f, 0.788f, 0.788f, 1.f};
+	float System::bg_color[4]  = {0.725f, 0.788f, 0.788f, 1.f};
+	int	  System::texture_size = 1024;
 
 	int	 System::num_frames_in_fright = 2;
 	bool System::is_warp_device		  = false;
-	int	 System::texture_size		  = 1024;
+	int	 System::max_num_of_entity	  = 5;
 	int	 System::cbuffer_size		  = 512;
 	int	 System::cbv_srv_buffer_size  = 5;
 

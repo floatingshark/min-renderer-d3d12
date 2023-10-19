@@ -1,6 +1,6 @@
 #include "DirectX/directx_constant.hpp"
-#include "DirectX/directx_manager.hpp"
 #include "DirectX/directx_imgui_render.hpp"
+#include "DirectX/directx_manager.hpp"
 #include "camera_manager.hpp"
 #include "entity.hpp"
 #include "system_variables.hpp"
@@ -110,6 +110,11 @@ namespace albedo {
 				ImGui::SliderFloat("LInt", &System::light_intensity, 0.f, 5.f, "%.2f");
 				ImGui::Checkbox("Shadow Mapping", &System::is_enabled_shadow_mapping);
 				ImGui::SliderFloat("Shadow Bias", &System::shadow_mapping_bias, 0.f, 0.0002f, "%.6f");
+				ImGui::TreePop();
+			}
+
+			if (ImGui::TreeNode("Shadow Map")) {
+				ImGui::Checkbox("Shadow Mapping", &albedo::System::is_enabled_shadow_mapping);
 				ImGui::TreePop();
 			}
 

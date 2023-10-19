@@ -60,21 +60,11 @@ namespace albedo {
 			const UINT cbv_descriptor_size =
 				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-			for (std::shared_ptr<albedo::Entity> entity : albedo::World::get_entities()) {
+			for (std::shared_ptr<albedo::Entity> entity : albedo::World::get_all_entities()) {
 				command_list->SetGraphicsRootSignature(entity->directx_component->root_signature.Get());
 				command_list->SetPipelineState(entity->directx_component->pipeline_state.Get());
 				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
 				entity->directx_component->draw(command_list, handle_cbv_srv);
-				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
-				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
-			}
-
-			if (System::is_enabled_skydome) {
-				std::shared_ptr<albedo::Entity> skydome_entity = albedo::World::get_skydome_entity();
-				command_list->SetGraphicsRootSignature(skydome_entity->directx_component->root_signature.Get());
-				command_list->SetPipelineState(skydome_entity->directx_component->pipeline_state.Get());
-				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				skydome_entity->directx_component->draw(command_list, handle_cbv_srv);
 				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
 			}

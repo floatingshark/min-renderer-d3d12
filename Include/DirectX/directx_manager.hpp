@@ -33,28 +33,22 @@ namespace albedo {
 		std::shared_ptr<DirectXMSAARender>		  msaa_render;
 		std::shared_ptr<DirectXImGuiRender>		  imgui_render;
 
-		static Microsoft::WRL::ComPtr<ID3D12Device>			device;
-		
-		UINT render_width  = albedo::WindowManager::window_width;
-		UINT render_height = albedo::WindowManager::window_height;
+		UINT64 frame_number	 = 1;
+		UINT   render_width	 = albedo::WindowManager::window_width;
+		UINT   render_height = albedo::WindowManager::window_height;
 
-		static const UINT MAX_OBJECT_SIZE		  = 5;
-		static const UINT MAX_CRV_SRV_BUFFER_SIZE = 5;
-		const wchar_t*	  SHADER_NAME_COLOR		  = L"./Source/Shader/ColorShaders.hlsl";
-		const wchar_t*	  SHADER_NAME_SKYDOME	  = L"./Source/Shader/SkydomeShaders.hlsl";
-
-		static const UINT NUM_FRAMES_IN_FLIGHT = 2;
-
+		static const UINT							 NUM_FRAMES_IN_FLIGHT = 2;
+		UINT										 rtv_index			  = 0;
+		static Microsoft::WRL::ComPtr<ID3D12Device>	 device;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_rtv;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_cbv_srv;
 		Microsoft::WRL::ComPtr<ID3D12DescriptorHeap> descriptor_heap_dsv;
-
-		Microsoft::WRL::ComPtr<ID3D12Resource> resource_render[NUM_FRAMES_IN_FLIGHT];
-		Microsoft::WRL::ComPtr<ID3D12Resource> resource_depth;
+		Microsoft::WRL::ComPtr<ID3D12Resource>		 resource_render[NUM_FRAMES_IN_FLIGHT];
+		Microsoft::WRL::ComPtr<ID3D12Resource>		 resource_depth;
+		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_rtv[NUM_FRAMES_IN_FLIGHT];
+		D3D12_CPU_DESCRIPTOR_HANDLE					 handle_dsv;
 
 	private:
-		UINT64											  frame_number = 1;
-		UINT											  rtv_index	   = 0;
 		D3D12_VIEWPORT									  viewport;
 		D3D12_RECT										  rect_scissor;
 		Microsoft::WRL::ComPtr<IDXGIFactory4>			  factory;
@@ -62,8 +56,6 @@ namespace albedo {
 		Microsoft::WRL::ComPtr<ID3D12Fence>				  queue_fence;
 		HANDLE											  handle_fence_event;
 		IDXGISwapChain3*								  swap_chain;
-		D3D12_CPU_DESCRIPTOR_HANDLE						  handle_rtv[NUM_FRAMES_IN_FLIGHT];
-		D3D12_CPU_DESCRIPTOR_HANDLE						  handle_dsv;
 		Microsoft::WRL::ComPtr<ID3D12CommandAllocator>	  command_allocator;
 		Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> command_list;
 		Microsoft::WRL::ComPtr<ID3D12RootSignature>		  root_signature;
@@ -203,7 +195,9 @@ namespace albedo {
 			temp_swap_chain = nullptr;
 		}
 		void initialize_descriptor_heaps() {
-			HRESULT hr;
+			HRESULT	   hr;
+			const UINT MAX_NUM_OF_ENTITY	   = System::max_num_of_entity;
+			const UINT MAX_CRV_SRV_BUFFER_SIZE = System::cbv_srv_buffer_size;
 
 			// Render Target
 			D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc;
@@ -217,7 +211,7 @@ namespace albedo {
 
 			// Constant Buffers and Shader Resources
 			D3D12_DESCRIPTOR_HEAP_DESC cbv_srv_heap_desc;
-			cbv_srv_heap_desc.NumDescriptors = MAX_CRV_SRV_BUFFER_SIZE * MAX_OBJECT_SIZE;
+			cbv_srv_heap_desc.NumDescriptors = MAX_CRV_SRV_BUFFER_SIZE * MAX_NUM_OF_ENTITY;
 			cbv_srv_heap_desc.Type			 = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 			cbv_srv_heap_desc.Flags			 = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 			cbv_srv_heap_desc.NodeMask		 = 0;
@@ -374,13 +368,13 @@ namespace albedo {
 			assert(SUCCEEDED(h_result) && "Create Root Signature");
 		}
 		void initialize_pipeline_state_render() {
-			HRESULT hr;
+			HRESULT		   hr;
+			const wchar_t* SHADER_NAME_COLOR = L"./Source/Shader/ColorShaders.hlsl";
 
 			UINT							 compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
 			Microsoft::WRL::ComPtr<ID3DBlob> vertex_shader;
 			Microsoft::WRL::ComPtr<ID3DBlob> pixel_shader;
 
-			// Stop When Shader Compile Error
 			hr = D3DCompileFromFile(SHADER_NAME_COLOR, nullptr, nullptr, "VSMain", "vs_5_0", compile_flags, 0,
 									&vertex_shader, nullptr);
 			DIRECTX_ASSERT(hr, "Compile Vertex Shader");
@@ -388,7 +382,6 @@ namespace albedo {
 									&pixel_shader, nullptr);
 			DIRECTX_ASSERT(hr, "Compile Pixel Shader");
 
-			// Vertex Layout
 			D3D12_INPUT_ELEMENT_DESC desc_input_elements[] = {
 				{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
 				{"COLOR", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
@@ -524,58 +517,45 @@ namespace albedo {
 	private:
 		void populate_command_list_render() {
 			HRESULT	   hr;
-			const bool flag_postprocess = System::is_enabled_postprocess;
+			const UINT MAX_CRV_SRV_BUFFER_SIZE = System::cbv_srv_buffer_size;
 
 			set_resource_barrier(resource_render[rtv_index].Get(), D3D12_RESOURCE_STATE_PRESENT,
 								 D3D12_RESOURCE_STATE_RENDER_TARGET);
-			if (flag_postprocess) {
-				set_resource_barrier(postprocess_render->resource_render_texture.Get(), D3D12_RESOURCE_STATE_PRESENT,
-									 D3D12_RESOURCE_STATE_RENDER_TARGET);
-			}
 
 			const FLOAT clear_color[4] = {System::bg_color[0], System::bg_color[1], System::bg_color[2],
 										  System::bg_color[3]};
 			command_list->ClearRenderTargetView(handle_rtv[rtv_index], clear_color, 0, nullptr);
 			command_list->ClearDepthStencilView(handle_dsv, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-			if (flag_postprocess) {
-				command_list->ClearRenderTargetView(postprocess_render->handle_rtv_render_texture, clear_color, 0,
-													nullptr);
-			}
 
 			command_list->RSSetViewports(1, &viewport);
 			command_list->RSSetScissorRects(1, &rect_scissor);
+			command_list->OMSetRenderTargets(1, &handle_rtv[rtv_index], TRUE, &handle_dsv);
+
+
 			if (System::is_enabled_postprocess) {
+				set_resource_barrier(postprocess_render->resource_render_texture.Get(), D3D12_RESOURCE_STATE_PRESENT,
+									 D3D12_RESOURCE_STATE_RENDER_TARGET);
+				command_list->ClearRenderTargetView(postprocess_render->handle_rtv_render_texture, clear_color, 0,
+													nullptr);
 				command_list->OMSetRenderTargets(1, &postprocess_render->handle_rtv_render_texture, TRUE, &handle_dsv);
-			} else {
-				command_list->OMSetRenderTargets(1, &handle_rtv[rtv_index], TRUE, &handle_dsv);
 			}
 
 			command_list->SetDescriptorHeaps(1, descriptor_heap_cbv_srv.GetAddressOf());
-			D3D12_CPU_DESCRIPTOR_HANDLE handle_cbv_srv = descriptor_heap_cbv_srv->GetCPUDescriptorHandleForHeapStart();
-			D3D12_GPU_DESCRIPTOR_HANDLE handle_gpu_cbv_srv =
-				descriptor_heap_cbv_srv->GetGPUDescriptorHandleForHeapStart();
-			const UINT cbv_descriptor_size =
+			D3D12_CPU_DESCRIPTOR_HANDLE handle_cpu = descriptor_heap_cbv_srv->GetCPUDescriptorHandleForHeapStart();
+			D3D12_GPU_DESCRIPTOR_HANDLE handle_gpu = descriptor_heap_cbv_srv->GetGPUDescriptorHandleForHeapStart();
+			const UINT					descriptor_size =
 				device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-			for (std::shared_ptr<albedo::Entity> entity : albedo::World::get_entities()) {
+			for (std::shared_ptr<albedo::Entity> entity : albedo::World::get_all_entities()) {
 				command_list->SetGraphicsRootSignature(entity->directx_component->root_signature.Get());
 				command_list->SetPipelineState(entity->directx_component->pipeline_state.Get());
-				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				entity->directx_component->draw(command_list.Get(), handle_cbv_srv);
-				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
-				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
+				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu);
+				entity->directx_component->draw(command_list.Get(), handle_cpu);
+				handle_cpu.ptr += MAX_CRV_SRV_BUFFER_SIZE * descriptor_size;
+				handle_gpu.ptr += MAX_CRV_SRV_BUFFER_SIZE * descriptor_size;
 			}
 
-			if (System::is_enabled_skydome) {
-				std::shared_ptr<albedo::Entity> skydome_entity = albedo::World::get_skydome_entity();
-				command_list->SetPipelineState(skydome_entity->directx_component->pipeline_state.Get());
-				command_list->SetGraphicsRootDescriptorTable(0, handle_gpu_cbv_srv);
-				skydome_entity->directx_component->draw(command_list.Get(), handle_cbv_srv);
-				handle_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
-				handle_gpu_cbv_srv.ptr += MAX_CRV_SRV_BUFFER_SIZE * cbv_descriptor_size;
-			}
-
-			if (flag_postprocess) {
+			if (System::is_enabled_postprocess) {
 				set_resource_barrier(postprocess_render->resource_render_texture.Get(),
 									 D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 			}
@@ -643,14 +623,7 @@ namespace albedo {
 			hr = command_list->Reset(command_allocator.Get(), nullptr);
 			assert(SUCCEEDED(hr) && "Command List Reset");
 		}
-		void set_constant_root_table_by_object(int in_index) {
-			command_list->SetDescriptorHeaps(1, descriptor_heap_cbv_srv.GetAddressOf());
-			D3D12_GPU_DESCRIPTOR_HANDLE cbv_gpu_handle = descriptor_heap_cbv_srv->GetGPUDescriptorHandleForHeapStart();
-			UINT cbv_descriptor_size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-			cbv_gpu_handle.ptr += cbv_descriptor_size * in_index * MAX_CRV_SRV_BUFFER_SIZE;
-			command_list->SetGraphicsRootDescriptorTable(0, cbv_gpu_handle);
-		}
 	};
 
-	Microsoft::WRL::ComPtr<ID3D12Device>		 DirectXManager::device				   = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Device> DirectXManager::device = nullptr;
 } // namespace albedo
